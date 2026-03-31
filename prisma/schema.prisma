@@ -1,0 +1,138 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  LECTURER
+  STUDENT
+}
+
+enum ValidationStatus {
+  VALID
+  INVALID_TOKEN
+  INVALID_LOCATION
+  DUPLICATE
+}
+
+model User {
+  id                 String           @id @default(cuid())
+  fullName           String           @map("full_name")
+  institutionalEmail String           @unique @map("institutional_email")
+  password           String
+  role               Role             @default(STUDENT)
+  department         String?
+  matricNumber       String?          @unique @map("matric_number")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  
+  // Relations
+  coursesLed         Course[]         @relation("LecturerCourses")
+  enrollments        Enrollment[]
+  attendanceRecords  AttendanceRecord[]
+  faceEmbedding      FaceEmbedding?
+
+  @@map("users")
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  code        String   @unique
+  description String?
+  joinCode    String   @unique @map("join_code")
+  lecturerId  String   @map("lecturer_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  lecturer         User              @relation("LecturerCourses", fields: [lecturerId], references: [id])
+  enrollments      Enrollment[]
+  sessions         Session[]
+
+  @@map("courses")
+}
+
+model Enrollment {
+  id         String   @id @default(cuid())
+  courseId   String   @map("course_id")
+  studentId  String   @map("student_id")
+  enrolledAt DateTime @default(now()) @map("enrolled_at")
+
+  // Relations
+  course  Course @relation(fields: [courseId], references: [id])
+  student User   @relation(fields: [studentId], references: [id])
+
+  @@unique([courseId, studentId])
+  @@map("enrollments")
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  courseId    String   @map("course_id")
+  startTime   DateTime @default(now()) @map("start_time")
+  endTime     DateTime? @map("end_time")
+  latitude    Float
+  longitude   Float
+  radius      Float    @default(100.0) // Radius in metres
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  course            Course             @relation(fields: [courseId], references: [id])
+  qrCodes           QRCode[]
+  attendanceRecords AttendanceRecord[]
+
+  @@map("sessions")
+}
+
+model QRCode {
+  id        String   @id @default(cuid())
+  sessionId String   @map("session_id")
+  token     String   @unique // HMAC-SHA256 signed token
+  nonce     String
+  expiresAt DateTime @map("expires_at")
+  isValid   Boolean  @default(true) @map("is_valid")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  session Session @relation(fields: [sessionId], references: [id])
+
+  @@map("qr_codes")
+}
+
+model AttendanceRecord {
+  id                       String           @id @default(cuid())
+  sessionId                String           @map("session_id")
+  studentId                String           @map("student_id")
+  studentLatitude          Float            @map("student_latitude")
+  studentLongitude         Float            @map("student_longitude")
+  haversineDistanceMetres  Float            @map("haversine_distance_metres")
+  validationStatus         ValidationStatus @map("validation_status")
+  createdAt                DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  session Session @relation(fields: [sessionId], references: [id])
+  student User    @relation(fields: [studentId], references: [id])
+
+  @@unique([sessionId, studentId])
+  @@map("attendance_records")
+}
+
+model FaceEmbedding {
+  id              String @id @default(cuid())
+  userId          String @unique @map("user_id")
+  embeddingVector Json   @map("embedding_vector") // JSONB for vector data
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("face_embeddings")
+}
