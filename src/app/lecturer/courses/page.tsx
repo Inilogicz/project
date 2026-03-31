@@ -137,10 +137,10 @@ export default function LecturerCoursesPage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1">Sessions</p>
+                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1">Classs</p>
                                         <div className="flex items-center gap-2">
                                             <Calendar size={14} className="text-gray-200" />
-                                            <span className="font-black text-dark">{course._count.sessions}</span>
+                                            <span className="font-black text-dark">{course._count.classs}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -170,8 +170,8 @@ export default function LecturerCoursesPage() {
                                         <p className="font-black text-dark">{course._count.enrollments}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1">Sessions</p>
-                                        <p className="font-black text-dark">{course._count.sessions}</p>
+                                        <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-1">Classs</p>
+                                        <p className="font-black text-dark">{course._count.classs}</p>
                                     </div>
                                     <ArrowRight size={20} className="text-gray-200 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                 </div>

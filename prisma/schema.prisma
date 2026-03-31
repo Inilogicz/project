@@ -55,7 +55,7 @@ model Course {
   // Relations
   lecturer         User              @relation("LecturerCourses", fields: [lecturerId], references: [id])
   enrollments      Enrollment[]
-  sessions         Session[]
+  classes          Class[]
 
   @@map("courses")
 }
@@ -74,7 +74,7 @@ model Enrollment {
   @@map("enrollments")
 }
 
-model Session {
+model Class {
   id          String   @id @default(cuid())
   courseId    String   @map("course_id")
   startTime   DateTime @default(now()) @map("start_time")
@@ -90,12 +90,12 @@ model Session {
   qrCodes           QRCode[]
   attendanceRecords AttendanceRecord[]
 
-  @@map("sessions")
+  @@map("classes")
 }
 
 model QRCode {
   id        String   @id @default(cuid())
-  sessionId String   @map("session_id")
+  classId   String   @map("class_id")
   token     String   @unique // HMAC-SHA256 signed token
   nonce     String
   expiresAt DateTime @map("expires_at")
@@ -103,14 +103,14 @@ model QRCode {
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  session Session @relation(fields: [sessionId], references: [id])
+  class Class @relation(fields: [classId], references: [id])
 
   @@map("qr_codes")
 }
 
 model AttendanceRecord {
   id                       String           @id @default(cuid())
-  sessionId                String           @map("session_id")
+  classId                  String           @map("class_id")
   studentId                String           @map("student_id")
   studentLatitude          Float            @map("student_latitude")
   studentLongitude         Float            @map("student_longitude")
@@ -119,10 +119,10 @@ model AttendanceRecord {
   createdAt                DateTime         @default(now()) @map("created_at")
 
   // Relations
-  session Session @relation(fields: [sessionId], references: [id])
+  class   Class @relation(fields: [classId], references: [id])
   student User    @relation(fields: [studentId], references: [id])
 
-  @@unique([sessionId, studentId])
+  @@unique([classId, studentId])
   @@map("attendance_records")
 }
 

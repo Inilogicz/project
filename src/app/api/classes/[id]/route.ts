@@ -8,7 +8,7 @@ export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { id: sessionId } = await params;
+    const { id: classId } = await params;
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
 
@@ -23,8 +23,8 @@ export async function GET(
     }
 
     try {
-        const session = await prisma.session.findUnique({
-            where: { id: sessionId },
+        const class = await prisma.class.findUnique({
+            where: { id: classId },
             include: {
                 course: true,
                 attendanceRecords: {
@@ -39,31 +39,31 @@ export async function GET(
             }
         });
 
-        if (!session) {
-            return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+        if (!class) {
+            return NextResponse.json({ error: 'Class not found' }, { status: 404 });
         }
 
         // Only lecturer of the course or an admin can see full details (including QR)
-        const isAuthorized = payload.role === 'ADMIN' || (payload.role === 'LECTURER' && session.course.lecturerId === payload.userId);
+        const isAuthorized = payload.role === 'ADMIN' || (payload.role === 'LECTURER' && class.course.lecturerId === payload.userId);
 
         if (!isAuthorized) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
-        let currentQR = session.qrCodes[0];
+        let currentQR = class.qrCodes[0];
 
         // If QR is expired or missing, generate a new one
         if (!currentQR || currentQR.expiresAt < new Date()) {
             const nonce = crypto.randomBytes(16).toString('hex');
             const timestamp = Date.now();
-            const rawToken = `${session.id}-${timestamp}-${nonce}`;
+            const rawToken = `${class.id}-${timestamp}-${nonce}`;
             const signedToken = crypto.createHmac('sha256', process.env.JWT_SECRET || 'secret')
                 .update(rawToken)
                 .digest('hex');
 
             currentQR = await prisma.qRCode.create({
                 data: {
-                    sessionId: session.id,
+                    classId: class.id,
                     token: signedToken,
                     nonce,
                     expiresAt: new Date(Date.now() + 15000) // Fast refresh: 15 seconds
@@ -72,13 +72,13 @@ export async function GET(
         }
 
         return NextResponse.json({
-            session: {
-                id: session.id,
-                courseTitle: session.course.title,
-                courseCode: session.course.code,
-                isActive: session.isActive,
-                attendanceCount: session.attendanceRecords.length,
-                attendanceRecords: session.attendanceRecords.map(r => ({
+            class: {
+                id: class.id,
+                courseTitle: class.course.title,
+                courseCode: class.course.code,
+                isActive: class.isActive,
+                attendanceCount: class.attendanceRecords.length,
+                attendanceRecords: class.attendanceRecords.map(r => ({
                     id: r.id,
                     studentName: r.student.fullName,
                     timestamp: r.createdAt,
@@ -91,7 +91,7 @@ export async function GET(
             }
         });
     } catch (error) {
-        console.error('Error fetching session:', error);
+        console.error('Error fetching class:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

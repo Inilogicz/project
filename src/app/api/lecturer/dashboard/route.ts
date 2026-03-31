@@ -21,10 +21,10 @@ export async function GET() {
 
     try {
         // Fetch stats
-        const [totalCourses, totalStudents, activeSessions] = await Promise.all([
+        const [totalCourses, totalStudents, activeClasss] = await Promise.all([
             prisma.course.count({ where: { lecturerId } }),
             prisma.enrollment.count({ where: { course: { lecturerId } } }),
-            prisma.session.count({ where: { course: { lecturerId }, isActive: true } }),
+            prisma.class.count({ where: { course: { lecturerId }, isActive: true } }),
         ]);
 
         const courses = await prisma.course.findMany({
@@ -43,7 +43,7 @@ export async function GET() {
             select: { fullName: true, role: true }
         });
 
-        const activeSessionsList = await prisma.session.findMany({
+        const activeClasssList = await prisma.class.findMany({
             where: { course: { lecturerId }, isActive: true },
             include: { course: { select: { title: true, code: true } } },
             orderBy: { createdAt: 'desc' }
@@ -53,8 +53,8 @@ export async function GET() {
             totalCourses,
             totalStudents,
             attendanceRate: "0%",
-            activeSessions: activeSessions,
-            activeSessionsList: activeSessionsList.map(s => ({
+            activeClasss: activeClasss,
+            activeClasssList: activeClasssList.map(s => ({
                 id: s.id,
                 courseTitle: s.course.title,
                 courseCode: s.course.code,

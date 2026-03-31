@@ -12,7 +12,7 @@ export async function POST(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id: sessionId } = await params;
+        const { id: classId } = await params;
         const token = request.cookies.get('auth_token')?.value;
         if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -30,21 +30,21 @@ export async function POST(
             return NextResponse.json({ error: 'QR token required for this method' }, { status: 400 });
         }
 
-        // 1. Validate Session
-        const session = await prisma.session.findUnique({
-            where: { id: sessionId },
+        // 1. Validate Class
+        const class = await prisma.class.findUnique({
+            where: { id: classId },
             include: { course: true },
         });
 
-        if (!session || !session.isActive) {
-            return NextResponse.json({ error: 'Session is not active' }, { status: 400 });
+        if (!class || !class.isActive) {
+            return NextResponse.json({ error: 'Class is not active' }, { status: 400 });
         }
 
         // 2. Validate Student Enrollment
         const enrollment = await prisma.enrollment.findUnique({
             where: {
                 courseId_studentId: {
-                    courseId: session.courseId,
+                    courseId: class.courseId,
                     studentId: payload.userId,
                 },
             },
@@ -57,8 +57,8 @@ export async function POST(
         // 3. Prevent Duplicates
         const existingRecord = await prisma.attendanceRecord.findUnique({
             where: {
-                sessionId_studentId: {
-                    sessionId,
+                classId_studentId: {
+                    classId,
                     studentId: payload.userId,
                 },
             },
@@ -77,7 +77,7 @@ export async function POST(
                 where: { token: qrToken },
             });
 
-            if (!qrCode || !qrCode.isValid || qrCode.sessionId !== sessionId || isAfter(new Date(), qrCode.expiresAt)) {
+            if (!qrCode || !qrCode.isValid || qrCode.classId !== classId || isAfter(new Date(), qrCode.expiresAt)) {
                 return NextResponse.json({
                     status: ValidationStatus.INVALID_TOKEN,
                     message: 'Invalid or expired QR code',
@@ -87,21 +87,21 @@ export async function POST(
 
         // 5. Geospatial Validation
         const distance = calculateDistance(
-            session.latitude,
-            session.longitude,
+            class.latitude,
+            class.longitude,
             latitude,
             longitude
         );
 
         let validationStatus: ValidationStatus = ValidationStatus.VALID;
-        if (distance > session.radius) {
+        if (distance > class.radius) {
             validationStatus = ValidationStatus.INVALID_LOCATION;
         }
 
         // 6. Save Record
         const record = await prisma.attendanceRecord.create({
             data: {
-                sessionId,
+                classId,
                 studentId: payload.userId,
                 studentLatitude: latitude,
                 studentLongitude: longitude,

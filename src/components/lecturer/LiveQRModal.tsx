@@ -6,13 +6,13 @@ import { X, RefreshCw, Clock, MapPin, Users } from 'lucide-react';
 import { cn } from '@/lib/ui-utils';
 
 interface LiveQRModalProps {
-    sessionId: string;
+    classId: string;
     courseTitle: string;
     courseCode: string;
     onClose: () => void;
 }
 
-export default function LiveQRModal({ sessionId, courseTitle, courseCode, onClose }: LiveQRModalProps) {
+export default function LiveQRModal({ classId, courseTitle, courseCode, onClose }: LiveQRModalProps) {
     const [qrToken, setQrToken] = useState<string>('');
     const [timeLeft, setTimeLeft] = useState(30);
     const [isLoading, setIsLoading] = useState(true);
@@ -20,7 +20,7 @@ export default function LiveQRModal({ sessionId, courseTitle, courseCode, onClos
 
     const fetchQR = async () => {
         try {
-            const response = await fetch(`/api/sessions/${sessionId}/qrcode`);
+            const response = await fetch(`/api/classes/${classId}/qrcode`);
             const data = await response.json();
             if (data.qrCode) {
                 setQrToken(data.qrCode.token);
@@ -48,7 +48,7 @@ export default function LiveQRModal({ sessionId, courseTitle, courseCode, onClos
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [sessionId]);
+    }, [classId]);
 
     return (
         <div className="fixed inset-0 bg-dark/95 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-6 sm:p-12 overflow-hidden">
@@ -69,7 +69,7 @@ export default function LiveQRModal({ sessionId, courseTitle, courseCode, onClos
                     <span className="px-3 py-1 bg-primary text-white rounded-lg text-xs font-black uppercase tracking-[0.2em]">{courseCode}</span>
                     <div className="h-0.5 w-12 bg-white/10 rounded-full"></div>
                     <span className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest">
-                        <RefreshCw size={14} className="animate-spin" /> Live Session
+                        <RefreshCw size={14} className="animate-spin" /> Live Class
                     </span>
                 </div>
                 <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter mb-4 leading-tight">

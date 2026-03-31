@@ -8,10 +8,10 @@ interface CourseCardProps {
     title: string;
     code: string;
     studentCount: number;
-    onStartSession?: () => void;
+    onStartClass?: () => void;
 }
 
-export function CourseCard({ id, title, code, studentCount, onStartSession }: CourseCardProps) {
+export function CourseCard({ id, title, code, studentCount, onStartClass }: CourseCardProps) {
     return (
         <div className="card group hover:shadow-md transition-all hover:border-primary/20">
             <div className="flex items-start justify-between mb-6">
@@ -36,11 +36,11 @@ export function CourseCard({ id, title, code, studentCount, onStartSession }: Co
 
             <div className="flex gap-3">
                 <button
-                    onClick={onStartSession}
+                    onClick={onStartClass}
                     className="flex-1 btn-primary py-2.5 text-sm"
                 >
                     <Play size={16} fill="currentColor" />
-                    Start Session
+                    Start Class
                 </button>
                 <Link
                     href={`/lecturer/courses/${id}`}

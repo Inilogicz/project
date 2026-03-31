@@ -39,7 +39,7 @@ export default function StudentCourseDetailPage() {
     if (loading) return null;
     if (!data) return <div>Course not found</div>;
 
-    const { course, sessions } = data;
+    const { course, classs } = data;
 
     return (
         <DashboardLayout>
@@ -79,37 +79,37 @@ export default function StudentCourseDetailPage() {
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Classes Attended</p>
-                            <h3 className="text-4xl font-black text-white">-- <span className="text-white/20 text-xl">/ {course.stats.totalSessions}</span></h3>
-                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Total sessions so far</p>
+                            <h3 className="text-4xl font-black text-white">-- <span className="text-white/20 text-xl">/ {course.stats.totalClasss}</span></h3>
+                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Total classs so far</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Session Timeline */}
+                {/* Class Timeline */}
                 <div className="space-y-6">
                     <h2 className="text-2xl font-black tracking-tight text-dark uppercase flex items-center gap-3">
-                        Session History
+                        Class History
                         <span className="w-1.5 h-1.5 bg-primary rounded-full" />
                     </h2>
 
                     <div className="space-y-4">
-                        {sessions.length === 0 ? (
+                        {classs.length === 0 ? (
                             <div className="py-20 text-center bg-white rounded-[3rem] border border-dashed border-gray-100">
-                                <p className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">No sessions recorded for this course</p>
+                                <p className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">No classs recorded for this course</p>
                             </div>
                         ) : (
-                            sessions.map((session: any) => (
-                                <div key={session.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
+                            classs.map((class: any) => (
+                                <div key={class.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
                                     <div className="flex items-center gap-6">
                                         <div className="w-14 h-14 bg-bg-gray rounded-2xl flex items-center justify-center text-gray-400 font-black">
-                                            {new Date(session.createdAt).getDate()}
+                                            {new Date(class.createdAt).getDate()}
                                         </div>
                                         <div>
                                             <h4 className="font-black text-dark text-lg tracking-tight">
-                                                {new Date(session.createdAt).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                                                {new Date(class.createdAt).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
                                             </h4>
                                             <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mt-1">
-                                                Starts at {new Date(session.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                Starts at {new Date(class.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>
                                     </div>
@@ -132,7 +132,7 @@ export default function StudentCourseDetailPage() {
                     </div>
                     <div>
                         <p className="text-xs font-bold text-primary/60 leading-relaxed uppercase tracking-widest">
-                            Attendance is verified using high-precision geospatial data. If you believe your record is incorrect, please contact your lecturer before the session ends.
+                            Attendance is verified using high-precision geospatial data. If you believe your record is incorrect, please contact your lecturer before the class ends.
                         </p>
                     </div>
                 </div>

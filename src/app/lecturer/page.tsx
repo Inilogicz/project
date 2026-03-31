@@ -24,15 +24,15 @@ export default function LecturerDashboard() {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
-    async function handleStartSession(courseId: string) {
+    async function handleStartClass(courseId: string) {
         if (!navigator.geolocation) {
-            alert('Geolocation is required to start a session.');
+            alert('Geolocation is required to start a class.');
             return;
         }
 
         navigator.geolocation.getCurrentPosition(async (pos) => {
             try {
-                const response = await fetch('/api/sessions/start', {
+                const response = await fetch('/api/classes/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -44,10 +44,10 @@ export default function LecturerDashboard() {
 
                 if (response.ok) {
                     const data = await response.json();
-                    router.push(`/lecturer/sessions/${data.sessionId}`);
+                    router.push(`/lecturer/classes/${data.classId}`);
                 } else {
                     const err = await response.json();
-                    alert(err.error || 'Failed to start session');
+                    alert(err.error || 'Failed to start class');
                 }
             } catch (err) {
                 alert('An error occurred');
@@ -55,16 +55,16 @@ export default function LecturerDashboard() {
         });
     }
 
-    async function handleEndSession(sessionId: string) {
-        if (!confirm('Are you sure you want to end this session?')) return;
+    async function handleEndClass(classId: string) {
+        if (!confirm('Are you sure you want to end this class?')) return;
         try {
-            const response = await fetch(`/api/sessions/${sessionId}/end`, {
+            const response = await fetch(`/api/classes/${classId}/end`, {
                 method: 'POST'
             });
             if (response.ok) {
                 fetchDashboardData();
             } else {
-                alert('Failed to end session');
+                alert('Failed to end class');
             }
         } catch (err) {
             alert('An error occurred');
@@ -146,40 +146,40 @@ export default function LecturerDashboard() {
                         color="green"
                     />
                     <StatCard
-                        title="Active Sessions"
-                        value={stats?.activeSessions || 0}
+                        title="Active Classs"
+                        value={stats?.activeClasss || 0}
                         icon={Calendar}
                         color="pink"
                     />
                 </section>
 
-                {stats?.activeSessionsList?.length > 0 && (
+                {stats?.activeClasssList?.length > 0 && (
                     <section className="space-y-6">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                            <h2 className="text-xl font-black uppercase tracking-tight text-dark">Currently Running Sessions</h2>
+                            <h2 className="text-xl font-black uppercase tracking-tight text-dark">Currently Running Classs</h2>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {stats.activeSessionsList.map((session: any) => (
-                                <div key={session.id} className="bg-primary/5 border border-primary/10 rounded-[2.5rem] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-primary/[0.08] transition-all group">
+                            {stats.activeClasssList.map((class: any) => (
+                                <div key={class.id} className="bg-primary/5 border border-primary/10 rounded-[2.5rem] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-primary/[0.08] transition-all group">
                                     <div className="flex items-center gap-6">
                                         <div className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
                                             <Calendar size={24} />
                                         </div>
                                         <div>
-                                            <h4 className="font-black text-dark text-lg tracking-tight">{session.courseTitle}</h4>
-                                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1">Live • Started {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                            <h4 className="font-black text-dark text-lg tracking-tight">{class.courseTitle}</h4>
+                                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1">Live • Started {new Date(class.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <Link
-                                            href={`/lecturer/sessions/${session.id}`}
+                                            href={`/lecturer/classes/${class.id}`}
                                             className="bg-white text-dark border border-dark/10 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-bg-gray transition-all"
                                         >
                                             Monitor
                                         </Link>
                                         <button
-                                            onClick={() => handleEndSession(session.id)}
+                                            onClick={() => handleEndClass(class.id)}
                                             className="bg-accent-pink text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-opacity-90 transition-all shadow-lg shadow-accent-pink/20"
                                         >
                                             Stop
@@ -215,7 +215,7 @@ export default function LecturerDashboard() {
                                         title={course.title}
                                         code={course.code}
                                         studentCount={course.studentCount}
-                                        onStartSession={() => handleStartSession(course.id)}
+                                        onStartClass={() => handleStartClass(course.id)}
                                     />
                                 ))
                             )}

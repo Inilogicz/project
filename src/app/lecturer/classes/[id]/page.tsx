@@ -17,22 +17,22 @@ import Link from 'next/link';
 import DashboardLayout from '@/components/shared/DashboardLayout';
 import { QRCodeSVG } from 'qrcode.react';
 
-export default function LecturerSessionPage() {
+export default function LecturerClassPage() {
     const params = useParams();
-    const sessionId = params.id as string;
+    const classId = params.id as string;
     const router = useRouter();
 
-    const [sessionData, setSessionData] = useState<any>(null);
+    const [classData, setClassData] = useState<any>(null);
     const [qrCode, setQrCode] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [timeLeft, setTimeLeft] = useState(0);
 
-    const fetchSessionData = async () => {
+    const fetchClassData = async () => {
         try {
-            const response = await fetch(`/api/sessions/${sessionId}`);
+            const response = await fetch(`/api/classes/${classId}`);
             if (response.ok) {
                 const data = await response.json();
-                setSessionData(data.session);
+                setClassData(data.class);
                 setQrCode(data.qrCode);
 
                 // Calculate time left for QR
@@ -43,17 +43,17 @@ export default function LecturerSessionPage() {
                 router.push('/lecturer');
             }
         } catch (error) {
-            console.error('Failed to fetch session:', error);
+            console.error('Failed to fetch class:', error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchSessionData();
-        const interval = setInterval(fetchSessionData, 5000); // Poll every 5s for attendance updates and QR refresh
+        fetchClassData();
+        const interval = setInterval(fetchClassData, 5000); // Poll every 5s for attendance updates and QR refresh
         return () => clearInterval(interval);
-    }, [sessionId]);
+    }, [classId]);
 
     // Timer for QR refresh visual
     useEffect(() => {
@@ -65,22 +65,22 @@ export default function LecturerSessionPage() {
     }, [timeLeft]);
 
     const handleCopyLink = () => {
-        const link = `${window.location.origin}/student/check-in/${sessionId}`;
+        const link = `${window.location.origin}/student/check-in/${classId}`;
         navigator.clipboard.writeText(link);
         alert('Attendance link copied to clipboard!');
     };
 
-    const handleEndSession = async () => {
+    const handleEndClass = async () => {
         if (!confirm('Are you sure you want to end this class?')) return;
         try {
-            await fetch(`/api/sessions/${sessionId}/end`, { method: 'POST' });
+            await fetch(`/api/classes/${classId}/end`, { method: 'POST' });
             router.push('/lecturer');
         } catch (error) {
             alert('Failed to end class');
         }
     };
 
-    if (loading && !sessionData) {
+    if (loading && !classData) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-bg-gray">
                 <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -95,12 +95,12 @@ export default function LecturerSessionPage() {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-1">
                         <Link href="/lecturer" className="inline-flex items-center gap-2 text-gray-400 hover:text-dark font-black uppercase tracking-[0.2em] text-[10px] mb-4 transition-colors group">
-                            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Exit Session
+                            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" /> Exit Class
                         </Link>
-                        <h1 className="text-4xl font-black tracking-tight text-dark">{sessionData?.courseTitle}</h1>
+                        <h1 className="text-4xl font-black tracking-tight text-dark">{classData?.courseTitle}</h1>
                         <p className="text-gray-400 font-bold uppercase tracking-widest text-xs flex items-center gap-2">
                             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                            Live Attendance Class • {sessionData?.courseCode}
+                            Live Attendance Class • {classData?.courseCode}
                         </p>
                     </div>
 
@@ -112,7 +112,7 @@ export default function LecturerSessionPage() {
                             <Share2 size={16} /> Share Link
                         </button>
                         <button
-                            onClick={handleEndSession}
+                            onClick={handleEndClass}
                             className="bg-dark text-white font-black uppercase tracking-widest text-[10px] py-3 px-8 rounded-2xl hover:bg-black transition-all"
                         >
                             End Class
@@ -158,7 +158,7 @@ export default function LecturerSessionPage() {
                                 <Users size={32} className="text-primary" />
                             </div>
                             <div>
-                                <h4 className="text-3xl font-black tracking-tight">{sessionData?.attendanceCount}</h4>
+                                <h4 className="text-3xl font-black tracking-tight">{classData?.attendanceCount}</h4>
                                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">Verified Check-ins</p>
                             </div>
                         </div>
@@ -174,7 +174,7 @@ export default function LecturerSessionPage() {
                         </div>
 
                         <div className="card bg-white min-h-[500px] flex flex-col">
-                            {sessionData?.attendanceRecords?.length === 0 ? (
+                            {classData?.attendanceRecords?.length === 0 ? (
                                 <div className="flex-1 flex flex-col items-center justify-center text-center p-20 space-y-4">
                                     <div className="w-20 h-20 bg-bg-gray rounded-[2.5rem] flex items-center justify-center text-gray-200">
                                         <Users size={40} />
@@ -183,7 +183,7 @@ export default function LecturerSessionPage() {
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-50">
-                                    {sessionData.attendanceRecords.map((record: any) => (
+                                    {classData.attendanceRecords.map((record: any) => (
                                         <div key={record.id} className="p-6 flex items-center justify-between hover:bg-bg-gray/50 transition-colors group">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 bg-green-50 text-green-500 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">

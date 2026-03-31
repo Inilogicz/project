@@ -7,7 +7,7 @@ export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { id: sessionId } = await params;
+    const { id: classId } = await params;
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
 
@@ -22,30 +22,30 @@ export async function POST(
     }
 
     try {
-        const session = await prisma.session.findUnique({
-            where: { id: sessionId },
+        const class = await prisma.class.findUnique({
+            where: { id: classId },
             include: { course: true }
         });
 
-        if (!session) {
-            return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+        if (!class) {
+            return NextResponse.json({ error: 'Class not found' }, { status: 404 });
         }
 
-        if (session.course.lecturerId !== payload.userId) {
+        if (class.course.lecturerId !== payload.userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
-        await prisma.session.update({
-            where: { id: sessionId },
+        await prisma.class.update({
+            where: { id: classId },
             data: {
                 isActive: false,
                 endTime: new Date()
             }
         });
 
-        return NextResponse.json({ message: 'Session ended successfully' });
+        return NextResponse.json({ message: 'Class ended successfully' });
     } catch (error) {
-        console.error('Error ending session:', error);
+        console.error('Error ending class:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

@@ -32,14 +32,14 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Course not found or unauthorized' }, { status: 404 });
         }
 
-        // Deactivate previous active sessions for this course
-        await prisma.session.updateMany({
+        // Deactivate previous active classs for this course
+        await prisma.class.updateMany({
             where: { courseId, isActive: true },
             data: { isActive: false, endTime: new Date() },
         });
 
-        // Create new session
-        const session = await prisma.session.create({
+        // Create new class
+        const class = await prisma.class.create({
             data: {
                 courseId,
                 latitude,
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         const nonce = generateNonce();
         const expiresAt = addSeconds(new Date(), 30);
         const qrPayload = JSON.stringify({
-            sessionId: session.id,
+            classId: class.id,
             nonce,
             expiresAt: expiresAt.getTime(),
         });
@@ -61,16 +61,16 @@ export async function POST(request: NextRequest) {
 
         const qrCode = await prisma.qRCode.create({
             data: {
-                sessionId: session.id,
+                classId: class.id,
                 token: qrToken,
                 nonce,
                 expiresAt,
             },
         });
 
-        return NextResponse.json({ session, qrCode }, { status: 201 });
+        return NextResponse.json({ class, qrCode }, { status: 201 });
     } catch (error) {
-        console.error('Start session error:', error);
+        console.error('Start class error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

@@ -14,7 +14,7 @@ import DashboardLayout from '@/components/shared/DashboardLayout';
 
 export default function StudentCheckInPage() {
     const params = useParams();
-    const sessionId = params.id as string;
+    const classId = params.id as string;
     const router = useRouter();
 
     const [status, setStatus] = useState<'IDLE' | 'LOCATING' | 'SUBMITTING' | 'SUCCESS' | 'ERROR'>('IDLE');
@@ -36,7 +36,7 @@ export default function StudentCheckInPage() {
             setMessage('Verifying your attendance...');
 
             try {
-                const response = await fetch(`/api/sessions/${sessionId}/attendance`, {
+                const response = await fetch(`/api/classes/${classId}/attendance`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -112,7 +112,7 @@ export default function StudentCheckInPage() {
                                         status === 'ERROR' ? 'Check-in Failed' : 'Validating...'}
                                 </h1>
                                 <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] px-10 leading-relaxed">
-                                    {status === 'IDLE' ? 'Mark your attendance via your current location. You must be within the session boundary.' : message}
+                                    {status === 'IDLE' ? 'Mark your attendance via your current location. You must be within the class boundary.' : message}
                                 </p>
                             </div>
 

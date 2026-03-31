@@ -62,18 +62,18 @@ export default function QRScanner() {
 
         try {
             // Simulate API call for attendance submission
-            // In real implementation, this calls /api/sessions/[id]/attendance
+            // In real implementation, this calls /api/classes/[id]/attendance
             // 1. Parse decodedText (token)
-            // 2. Extract sessionId from token or assume it's part of the scanned payload
+            // 2. Extract classId from token or assume it's part of the scanned payload
 
             const payload = JSON.parse(decodedText);
-            const sessionId = payload.sessionId;
+            const classId = payload.classId;
 
             if (!location) {
                 throw new Error('Location data not available. Please enable GPS.');
             }
 
-            const response = await fetch(`/api/sessions/${sessionId}/attendance`, {
+            const response = await fetch(`/api/classes/${classId}/attendance`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -25,7 +25,7 @@ export async function GET() {
                 where: { lecturerId: payload.userId },
                 include: {
                     _count: {
-                        select: { enrollments: true, sessions: true }
+                        select: { enrollments: true, classs: true }
                     }
                 },
                 orderBy: { createdAt: 'desc' }
@@ -40,7 +40,7 @@ export async function GET() {
                                 select: { fullName: true }
                             },
                             _count: {
-                                select: { sessions: true }
+                                select: { classs: true }
                             }
                         }
                     }

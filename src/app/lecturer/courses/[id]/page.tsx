@@ -21,7 +21,7 @@ export default function LecturerCourseDetailPage() {
     const courseId = params.id as string;
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'students' | 'sessions'>('students');
+    const [activeTab, setActiveTab] = useState<'students' | 'classs'>('students');
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
@@ -51,7 +51,7 @@ export default function LecturerCourseDetailPage() {
     if (loading) return null;
     if (!data) return <div>Course not found</div>;
 
-    const { course, students, sessions } = data;
+    const { course, students, classs } = data;
 
     return (
         <DashboardLayout>
@@ -103,8 +103,8 @@ export default function LecturerCourseDetailPage() {
                             <Calendar size={28} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Sessions</p>
-                            <h3 className="text-2xl font-black text-dark">{course.stats.totalSessions}</h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Classs</p>
+                            <h3 className="text-2xl font-black text-dark">{course.stats.totalClasss}</h3>
                         </div>
                     </div>
                     <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 flex items-center gap-6">
@@ -124,7 +124,7 @@ export default function LecturerCourseDetailPage() {
                         <div className="flex gap-10">
                             {[
                                 { id: 'students', label: 'Enrolled Students', icon: Users },
-                                { id: 'sessions', label: 'Session History', icon: Calendar }
+                                { id: 'classs', label: 'Class History', icon: Calendar }
                             ].map(tab => (
                                 <button
                                     key={tab.id}
@@ -188,37 +188,37 @@ export default function LecturerCourseDetailPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
-                            {sessions.length === 0 ? (
+                            {classs.length === 0 ? (
                                 <div className="py-20 text-center bg-white rounded-[3rem] border border-dashed border-gray-100">
-                                    <p className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">No session history yet</p>
+                                    <p className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">No class history yet</p>
                                 </div>
                             ) : (
-                                sessions.map((session: any) => (
-                                    <div key={session.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
+                                classs.map((class: any) => (
+                                    <div key={class.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
                                         <div className="flex items-center gap-6">
                                             <div className="w-14 h-14 bg-primary/5 text-primary rounded-2xl flex items-center justify-center">
                                                 <Calendar size={24} />
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-dark text-lg tracking-tight">Session on {new Date(session.createdAt).toLocaleDateString()}</h4>
+                                                <h4 className="font-black text-dark text-lg tracking-tight">Class on {new Date(class.createdAt).toLocaleDateString()}</h4>
                                                 <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mt-1">
-                                                    {new Date(session.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {new Date(class.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-12">
                                             <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${session.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                                                <div className={`w-2 h-2 rounded-full ${class.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                                    {session.isActive ? 'Ongoing' : 'Completed'}
+                                                    {class.isActive ? 'Ongoing' : 'Completed'}
                                                 </span>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">Attended</p>
-                                                <p className="text-xl font-black text-dark">{session.attendanceCount}</p>
+                                                <p className="text-xl font-black text-dark">{class.attendanceCount}</p>
                                             </div>
                                             <Link
-                                                href={`/lecturer/sessions/${session.id}`}
+                                                href={`/lecturer/classes/${class.id}`}
                                                 className="p-3 text-gray-300 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
                                             >
                                                 <ArrowLeft size={20} className="rotate-180" />
