@@ -59,7 +59,7 @@ export default function JoinCoursePage() {
                             type="text"
                             value={joinCode}
                             onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                            placeholder="e.g. CS101X"
+                            placeholder="SS27DI "
                             maxLength={8}
                             required
                             className="w-full px-8 py-6 rounded-[2rem] bg-white border border-gray-100 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary text-2xl font-black text-center tracking-[0.5em] uppercase transition-all shadow-sm"

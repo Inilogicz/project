@@ -88,34 +88,34 @@ export default function StudentDashboard() {
                         color="blue"
                     />
                     <StatCard
-                        title="Active Classs"
-                        value={stats?.activeClasssCount || 0}
+                        title="Active Classes"
+                        value={stats?.activeClsesCount || 0}
                         icon={QrCode}
                         color="pink"
                     />
                 </section>
 
-                {/* Active Classs Fallback / Manual Check-in */}
-                {(stats?.activeClasss?.length > 0) && (
+                {/* Active Classes Fallback / Manual Check-in */}
+                {(stats?.activeClses?.length > 0) && (
                     <section className="space-y-6">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                            <h2 className="text-xl font-black uppercase tracking-tight text-dark">Live Classs Detected</h2>
+                            <h2 className="text-xl font-black uppercase tracking-tight text-dark">Live Classes Detected</h2>
                         </div>
                         <div className="grid grid-cols-1 gap-4">
-                            {stats.activeClasss.map((class: any) => (
-                                <div key={class.id} className="bg-primary/5 border border-primary/10 rounded-[2.5rem] p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            {stats.activeClses.map((cls: any) => (
+                                <div key={cls.id} className="bg-primary/5 border border-primary/10 rounded-[2.5rem] p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                                     <div className="flex items-center gap-6">
                                         <div className="w-14 h-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
                                             <Calendar size={24} />
                                         </div>
                                         <div>
-                                            <h4 className="font-black text-dark text-lg tracking-tight">{class.courseTitle}</h4>
-                                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1">Live Now • Started {new Date(class.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                            <h4 className="font-black text-dark text-lg tracking-tight">{cls.courseTitle}</h4>
+                                            <p className="text-[10px] font-bold text-primary uppercase tracking-widest mt-1">Live Now • Started {new Date(cls.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                         </div>
                                     </div>
                                     <Link
-                                        href={`/student/check-in/${class.id}`}
+                                        href={`/student/check-in/${cls.id}`}
                                         className="bg-dark text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all text-center"
                                     >
                                         Manual Check-in

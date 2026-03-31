@@ -22,7 +22,7 @@ export async function POST(request: Request) {
         const { courseId, latitude, longitude, radius = 100 } = await request.json();
 
         if (!courseId || latitude === undefined || longitude === undefined) {
-            return NextResponse.json({ error: 'Missing required class parameters' }, { status: 400 });
+            return NextResponse.json({ error: 'Missing required cls parameters' }, { status: 400 });
         }
 
         // Verify course belongs to lecturer
@@ -34,14 +34,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Course not found or unauthorized' }, { status: 404 });
         }
 
-        // Deactivate any existing active classs for this course
-        await prisma.class.updateMany({
+        // Deactivate any existing active classes for this course
+        await prisma.cls.updateMany({
             where: { courseId, isActive: true },
             data: { isActive: false, endTime: new Date() }
         });
 
         // Create new class
-        const class = await prisma.class.create({
+        const cls = await prisma.cls.create({
             data: {
                 courseId,
                 latitude,
@@ -54,14 +54,14 @@ export async function POST(request: Request) {
         // Generate initial QR token
         const nonce = crypto.randomBytes(16).toString('hex');
         const timestamp = Date.now();
-        const rawToken = `${class.id}-${timestamp}-${nonce}`;
+        const rawToken = `${cls.id}-${timestamp}-${nonce}`;
         const signedToken = crypto.createHmac('sha256', process.env.JWT_SECRET || 'secret')
             .update(rawToken)
             .digest('hex');
 
         await prisma.qRCode.create({
             data: {
-                classId: class.id,
+                clsId: cls.id,
                 token: signedToken,
                 nonce,
                 expiresAt: new Date(Date.now() + 30000) // 30 seconds expiry
@@ -70,10 +70,10 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             message: 'Class started',
-            classId: class.id
+            clsId: cls.id
         });
     } catch (error) {
-        console.error('Error starting class:', error);
+        console.error('Error starting cls:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

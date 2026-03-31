@@ -11,7 +11,11 @@ import {
     MoreHorizontal,
     Search,
     FileDown,
-    PlusCircle
+    PlusCircle,
+    Activity,
+    Play,
+    StopCircle,
+    Monitor
 } from 'lucide-react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/shared/DashboardLayout';
@@ -21,23 +25,25 @@ export default function LecturerCourseDetailPage() {
     const courseId = params.id as string;
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'students' | 'classs'>('students');
+    const [activeTab, setActiveTab] = useState<'students' | 'classes'>('students');
     const [copied, setCopied] = useState(false);
+    const router = useRouter();
+
+    const fetchDetails = async () => {
+        try {
+            const response = await fetch(`/api/courses/${courseId}`);
+            if (response.ok) {
+                const result = await response.json();
+                setData(result);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        async function fetchDetails() {
-            try {
-                const response = await fetch(`/api/courses/${courseId}`);
-                if (response.ok) {
-                    const result = await response.json();
-                    setData(result);
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        }
         fetchDetails();
     }, [courseId]);
 
@@ -48,10 +54,58 @@ export default function LecturerCourseDetailPage() {
         setTimeout(() => setCopied(false), 2000);
     };
 
+    async function handleStartClass() {
+        if (!navigator.geolocation) {
+            alert('Geolocation is required to start a class.');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            try {
+                const response = await fetch('/api/classes/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        courseId,
+                        latitude: pos.coords.latitude,
+                        longitude: pos.coords.longitude
+                    })
+                });
+
+                if (response.ok) {
+                    const resData = await response.json();
+                    router.push(`/lecturer/classes/${resData.clsId}`);
+                } else {
+                    const err = await response.json();
+                    alert(err.error || 'Failed to start class');
+                }
+            } catch (err) {
+                alert('An error occurred');
+            }
+        });
+    }
+
+    async function handleEndClass(clsId: string) {
+        if (!confirm('Are you sure you want to end this class?')) return;
+        try {
+            const response = await fetch(`/api/classes/${clsId}/end`, {
+                method: 'POST'
+            });
+            if (response.ok) {
+                fetchDetails();
+            } else {
+                alert('Failed to end class');
+            }
+        } catch (err) {
+            alert('An error occurred');
+        }
+    }
+
     if (loading) return null;
     if (!data) return <div>Course not found</div>;
 
-    const { course, students, classs } = data;
+    const { course, students, classes } = data;
+    const activeClass = classes.find((c: any) => c.isActive);
 
     return (
         <DashboardLayout>
@@ -73,17 +127,43 @@ export default function LecturerCourseDetailPage() {
                         <p className="text-gray-400 font-medium max-w-2xl">{course.description || 'No description provided for this module.'}</p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center gap-8 self-start lg:self-end">
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300 mb-1">Student Join Code</span>
-                            <span className="text-3xl font-black text-primary tracking-widest uppercase">{course.joinCode}</span>
+                    <div className="flex flex-wrap items-center gap-4 self-start lg:self-end">
+                        <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center gap-8">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300 mb-1">Student Join Code</span>
+                                <span className="text-3xl font-black text-primary tracking-widest uppercase">{course.joinCode}</span>
+                            </div>
+                            <button
+                                onClick={copyJoinCode}
+                                className="w-12 h-12 rounded-2xl bg-bg-gray flex items-center justify-center text-gray-400 hover:bg-primary/10 hover:text-primary transition-all group"
+                            >
+                                {copied ? <Check size={20} className="text-green-500" /> : <Copy size={20} className="group-hover:scale-110 transition-transform" />}
+                            </button>
                         </div>
-                        <button
-                            onClick={copyJoinCode}
-                            className="w-12 h-12 rounded-2xl bg-bg-gray flex items-center justify-center text-gray-400 hover:bg-primary/10 hover:text-primary transition-all group"
-                        >
-                            {copied ? <Check size={20} className="text-green-500" /> : <Copy size={20} className="group-hover:scale-110 transition-transform" />}
-                        </button>
+
+                        {activeClass ? (
+                            <div className="flex items-center gap-3">
+                                <Link
+                                    href={`/lecturer/classes/${activeClass.id}`}
+                                    className="bg-primary text-white font-black uppercase tracking-widest text-[10px] py-6 px-10 rounded-3xl hover:shadow-xl hover:shadow-primary/20 transition-all flex items-center gap-2"
+                                >
+                                    <Monitor size={18} /> Monitor Live
+                                </Link>
+                                <button
+                                    onClick={() => handleEndClass(activeClass.id)}
+                                    className="bg-dark text-white font-black uppercase tracking-widest text-[10px] py-6 px-10 rounded-3xl hover:bg-black transition-all flex items-center gap-2"
+                                >
+                                    <StopCircle size={18} /> End Class
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={handleStartClass}
+                                className="bg-primary text-white font-black uppercase tracking-widest text-[10px] py-6 px-12 rounded-3xl hover:shadow-xl hover:shadow-primary/20 transition-all flex items-center gap-2"
+                            >
+                                <PlusCircle size={20} /> Start New Class
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -103,8 +183,8 @@ export default function LecturerCourseDetailPage() {
                             <Calendar size={28} />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Classs</p>
-                            <h3 className="text-2xl font-black text-dark">{course.stats.totalClasss}</h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Classes</p>
+                            <h3 className="text-2xl font-black text-dark">{course.stats.totalClasses}</h3>
                         </div>
                     </div>
                     <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 flex items-center gap-6">
@@ -124,7 +204,7 @@ export default function LecturerCourseDetailPage() {
                         <div className="flex gap-10">
                             {[
                                 { id: 'students', label: 'Enrolled Students', icon: Users },
-                                { id: 'classs', label: 'Class History', icon: Calendar }
+                                { id: 'classes', label: 'Class History', icon: Calendar }
                             ].map(tab => (
                                 <button
                                     key={tab.id}
@@ -188,37 +268,37 @@ export default function LecturerCourseDetailPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
-                            {classs.length === 0 ? (
+                            {classes.length === 0 ? (
                                 <div className="py-20 text-center bg-white rounded-[3rem] border border-dashed border-gray-100">
-                                    <p className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">No class history yet</p>
+                                    <p className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">No cls history yet</p>
                                 </div>
                             ) : (
-                                classs.map((class: any) => (
-                                    <div key={class.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
+                                classes.map((cls: any) => (
+                                    <div key={cls.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
                                         <div className="flex items-center gap-6">
                                             <div className="w-14 h-14 bg-primary/5 text-primary rounded-2xl flex items-center justify-center">
                                                 <Calendar size={24} />
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-dark text-lg tracking-tight">Class on {new Date(class.createdAt).toLocaleDateString()}</h4>
+                                                <h4 className="font-black text-dark text-lg tracking-tight">Class on {new Date(cls.createdAt).toLocaleDateString()}</h4>
                                                 <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mt-1">
-                                                    {new Date(class.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {new Date(cls.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-12">
                                             <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${class.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                                                <div className={`w-2 h-2 rounded-full ${cls.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                                    {class.isActive ? 'Ongoing' : 'Completed'}
+                                                    {cls.isActive ? 'Ongoing' : 'Completed'}
                                                 </span>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">Attended</p>
-                                                <p className="text-xl font-black text-dark">{class.attendanceCount}</p>
+                                                <p className="text-xl font-black text-dark">{cls.attendanceCount}</p>
                                             </div>
                                             <Link
-                                                href={`/lecturer/classes/${class.id}`}
+                                                href={`/lecturer/classes/${cls.id}`}
                                                 className="p-3 text-gray-300 hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
                                             >
                                                 <ArrowLeft size={20} className="rotate-180" />

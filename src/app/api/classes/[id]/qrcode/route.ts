@@ -12,7 +12,7 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id: classId } = await params;
+        const { id: clsId } = await params;
         const token = request.cookies.get('auth_token')?.value;
         if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -21,7 +21,7 @@ export async function GET(
 
         // Get current valid QR code
         let qrCode = await prisma.qRCode.findFirst({
-            where: { classId, isValid: true },
+            where: { clsId, isValid: true },
             orderBy: { createdAt: 'desc' },
         });
 
@@ -31,7 +31,7 @@ export async function GET(
         if (!qrCode || isAfter(now, qrCode.expiresAt)) {
             // Invalidate old QR codes for this class
             await prisma.qRCode.updateMany({
-                where: { classId, isValid: true },
+                where: { clsId, isValid: true },
                 data: { isValid: false },
             });
 
@@ -39,7 +39,7 @@ export async function GET(
             const nonce = generateNonce();
             const expiresAt = addSeconds(now, 30);
             const qrPayload = JSON.stringify({
-                classId,
+                clsId,
                 nonce,
                 expiresAt: expiresAt.getTime(),
             });
@@ -47,7 +47,7 @@ export async function GET(
 
             qrCode = await prisma.qRCode.create({
                 data: {
-                    classId,
+                    clsId,
                     token: qrToken,
                     nonce,
                     expiresAt,

@@ -26,7 +26,7 @@ export default function Navbar({ user, onMenuClick }: NavbarProps) {
                     <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" />
                     <input
                         type="text"
-                        placeholder="Search courses, classs..."
+                        placeholder="Search courses, classes..."
                         className="pl-10 pr-4 py-2 bg-gray-100/50 border-transparent focus:bg-white focus:border-primary/20 rounded-xl text-sm w-64 focus:outline-none transition-all"
                     />
                 </div>

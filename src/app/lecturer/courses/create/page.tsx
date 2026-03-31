@@ -82,7 +82,7 @@ export default function CreateCoursePage() {
                                 type="text"
                                 value={formData.title}
                                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                placeholder="e.g. Introduction to Applied Physics"
+                                placeholder="e.g. Introduction to Computing"
                                 required
                                 className="input-field py-5 px-8 bg-bg-gray/50 border-transparent transition-all focus:bg-white"
                             />
@@ -94,7 +94,7 @@ export default function CreateCoursePage() {
                                 type="text"
                                 value={formData.code}
                                 onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                placeholder="e.g. PHY101"
+                                placeholder="e.g. CSC509"
                                 required
                                 className="input-field py-5 px-8 bg-bg-gray/50 border-transparent transition-all focus:bg-white uppercase font-black"
                             />

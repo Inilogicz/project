@@ -28,7 +28,7 @@ export async function GET() {
                     include: {
                         course: {
                             include: {
-                                classs: {
+                                classes: {
                                     include: {
                                         attendanceRecords: {
                                             where: { studentId: studentId }
@@ -49,9 +49,9 @@ export async function GET() {
         // Calculate stats and course data
         const courses = student.enrollments.map(enrollment => {
             const course = enrollment.course;
-            const totalClasss = course.classs.length;
-            const attendedCount = course.classs.filter(s => s.attendanceRecords.length > 0).length;
-            const attendancePercent = totalClasss > 0 ? Math.round((attendedCount / totalClasss) * 100) : 100;
+            const totalClasses = course.classes.length;
+            const attendedCount = course.classes.filter(s => s.attendanceRecords.length > 0).length;
+            const attendancePercent = totalClasses > 0 ? Math.round((attendedCount / totalClasses) * 100) : 100;
 
             let status: 'perfect' | 'on track' | 'low' = 'on track';
             if (attendancePercent >= 95) status = 'perfect';
@@ -70,7 +70,7 @@ export async function GET() {
             ? Math.round(courses.reduce((acc: number, c: any) => acc + parseInt(c.attendance), 0) / courses.length)
             : 100;
 
-        const activeClasss = await prisma.class.findMany({
+        const activeClses = await prisma.cls.findMany({
             where: {
                 course: {
                     enrollments: { some: { studentId } }
@@ -92,8 +92,8 @@ export async function GET() {
             stats: {
                 overallAttendance: `${overallAttendance}%`,
                 topPerformer: true,
-                activeClasssCount: activeClasss.length,
-                activeClasss: activeClasss.map(s => ({
+                activeClsesCount: activeClses.length,
+                activeClses: activeClses.map(s => ({
                     id: s.id,
                     courseTitle: s.course.title,
                     courseCode: s.course.code,

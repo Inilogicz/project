@@ -39,7 +39,7 @@ export default function StudentCourseDetailPage() {
     if (loading) return null;
     if (!data) return <div>Course not found</div>;
 
-    const { course, classs } = data;
+    const { course, classes } = data;
 
     return (
         <DashboardLayout>
@@ -79,8 +79,8 @@ export default function StudentCourseDetailPage() {
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-1">Classes Attended</p>
-                            <h3 className="text-4xl font-black text-white">-- <span className="text-white/20 text-xl">/ {course.stats.totalClasss}</span></h3>
-                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Total classs so far</p>
+                            <h3 className="text-4xl font-black text-white">-- <span className="text-white/20 text-xl">/ {course.stats.totalClasses}</span></h3>
+                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">Total classes so far</p>
                         </div>
                     </div>
                 </div>
@@ -93,23 +93,23 @@ export default function StudentCourseDetailPage() {
                     </h2>
 
                     <div className="space-y-4">
-                        {classs.length === 0 ? (
+                        {classes.length === 0 ? (
                             <div className="py-20 text-center bg-white rounded-[3rem] border border-dashed border-gray-100">
-                                <p className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">No classs recorded for this course</p>
+                                <p className="text-gray-300 font-bold uppercase tracking-widest text-[10px]">No classes recorded for this course</p>
                             </div>
                         ) : (
-                            classs.map((class: any) => (
-                                <div key={class.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
+                            classes.map((cls: any) => (
+                                <div key={cls.id} className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between group hover:shadow-md transition-all">
                                     <div className="flex items-center gap-6">
                                         <div className="w-14 h-14 bg-bg-gray rounded-2xl flex items-center justify-center text-gray-400 font-black">
-                                            {new Date(class.createdAt).getDate()}
+                                            {new Date(cls.createdAt).getDate()}
                                         </div>
                                         <div>
                                             <h4 className="font-black text-dark text-lg tracking-tight">
-                                                {new Date(class.createdAt).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                                                {new Date(cls.createdAt).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
                                             </h4>
                                             <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mt-1">
-                                                Starts at {new Date(class.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                Starts at {new Date(cls.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>
                                     </div>
@@ -132,7 +132,7 @@ export default function StudentCourseDetailPage() {
                     </div>
                     <div>
                         <p className="text-xs font-bold text-primary/60 leading-relaxed uppercase tracking-widest">
-                            Attendance is verified using high-precision geospatial data. If you believe your record is incorrect, please contact your lecturer before the class ends.
+                            Attendance is verified using high-precision geospatial data. If you believe your record is incorrect, please contact your lecturer before the cls ends.
                         </p>
                     </div>
                 </div>

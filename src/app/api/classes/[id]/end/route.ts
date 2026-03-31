@@ -7,7 +7,7 @@ export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { id: classId } = await params;
+    const { id: clsId } = await params;
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
 
@@ -22,21 +22,21 @@ export async function POST(
     }
 
     try {
-        const class = await prisma.class.findUnique({
-            where: { id: classId },
+        const cls = await prisma.cls.findUnique({
+            where: { id: clsId },
             include: { course: true }
         });
 
-        if (!class) {
+        if (!cls) {
             return NextResponse.json({ error: 'Class not found' }, { status: 404 });
         }
 
-        if (class.course.lecturerId !== payload.userId) {
+        if (cls.course.lecturerId !== payload.userId) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
-        await prisma.class.update({
-            where: { id: classId },
+        await prisma.cls.update({
+            where: { id: clsId },
             data: {
                 isActive: false,
                 endTime: new Date()
@@ -45,7 +45,7 @@ export async function POST(
 
         return NextResponse.json({ message: 'Class ended successfully' });
     } catch (error) {
-        console.error('Error ending class:', error);
+        console.error('Error ending cls:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

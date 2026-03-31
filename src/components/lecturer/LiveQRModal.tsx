@@ -6,13 +6,13 @@ import { X, RefreshCw, Clock, MapPin, Users } from 'lucide-react';
 import { cn } from '@/lib/ui-utils';
 
 interface LiveQRModalProps {
-    classId: string;
+    clsId: string;
     courseTitle: string;
     courseCode: string;
     onClose: () => void;
 }
 
-export default function LiveQRModal({ classId, courseTitle, courseCode, onClose }: LiveQRModalProps) {
+export default function LiveQRModal({ clsId, courseTitle, courseCode, onClose }: LiveQRModalProps) {
     const [qrToken, setQrToken] = useState<string>('');
     const [timeLeft, setTimeLeft] = useState(30);
     const [isLoading, setIsLoading] = useState(true);
@@ -20,7 +20,7 @@ export default function LiveQRModal({ classId, courseTitle, courseCode, onClose 
 
     const fetchQR = async () => {
         try {
-            const response = await fetch(`/api/classes/${classId}/qrcode`);
+            const response = await fetch(`/api/classes/${clsId}/qrcode`);
             const data = await response.json();
             if (data.qrCode) {
                 setQrToken(data.qrCode.token);
@@ -48,7 +48,7 @@ export default function LiveQRModal({ classId, courseTitle, courseCode, onClose 
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [classId]);
+    }, [clsId]);
 
     return (
         <div className="fixed inset-0 bg-dark/95 backdrop-blur-xl z-[100] flex flex-col items-center justify-center p-6 sm:p-12 overflow-hidden">

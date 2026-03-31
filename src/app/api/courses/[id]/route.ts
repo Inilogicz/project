@@ -35,7 +35,7 @@ export async function GET(
                         }
                     }
                 },
-                classs: {
+                classes: {
                     include: {
                         _count: {
                             select: { attendanceRecords: true }
@@ -83,11 +83,11 @@ export async function GET(
                 lecturerName: course.lecturer.fullName,
                 stats: {
                     totalStudents: course.enrollments.length,
-                    totalClasss: course.classs.length,
+                    totalClasses: course.classes.length,
                 }
             },
             students: isLecturer || isAdmin ? students : [],
-            classs: course.classs.map(s => ({
+            classes: course.classes.map(s => ({
                 id: s.id,
                 createdAt: s.createdAt,
                 attendanceCount: s._count.attendanceRecords,

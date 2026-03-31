@@ -64,16 +64,16 @@ export default function QRScanner() {
             // Simulate API call for attendance submission
             // In real implementation, this calls /api/classes/[id]/attendance
             // 1. Parse decodedText (token)
-            // 2. Extract classId from token or assume it's part of the scanned payload
+            // 2. Extract clsId from token or assume it's part of the scanned payload
 
             const payload = JSON.parse(decodedText);
-            const classId = payload.classId;
+            const clsId = payload.clsId;
 
             if (!location) {
                 throw new Error('Location data not available. Please enable GPS.');
             }
 
-            const response = await fetch(`/api/classes/${classId}/attendance`, {
+            const response = await fetch(`/api/classes/${clsId}/attendance`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -147,7 +147,7 @@ export default function QRScanner() {
                                 </h3>
                                 <p className="text-sm text-gray-300 font-medium leading-relaxed">
                                     {status === 'VALIDATING' && 'Checking location and token signature...'}
-                                    {status === 'SUCCESS' && 'Attendance marked successfully. You can now leave the class.'}
+                                    {status === 'SUCCESS' && 'Attendance marked successfully. You can now leave the cls.'}
                                     {status === 'ERROR' && errorMessage}
                                 </p>
 

@@ -8,7 +8,7 @@ export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
-    const { id: classId } = await params;
+    const { id: clsId } = await params;
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
 
@@ -23,8 +23,8 @@ export async function GET(
     }
 
     try {
-        const class = await prisma.class.findUnique({
-            where: { id: classId },
+        const cls = await prisma.cls.findUnique({
+            where: { id: clsId },
             include: {
                 course: true,
                 attendanceRecords: {
@@ -39,31 +39,54 @@ export async function GET(
             }
         });
 
-        if (!class) {
+        if (!cls) {
             return NextResponse.json({ error: 'Class not found' }, { status: 404 });
         }
 
-        // Only lecturer of the course or an admin can see full details (including QR)
-        const isAuthorized = payload.role === 'ADMIN' || (payload.role === 'LECTURER' && class.course.lecturerId === payload.userId);
+        // Check if student is enrolled
+        const isStudentEnrolled = payload.role === 'STUDENT' && await prisma.enrollment.findUnique({
+            where: {
+                courseId_studentId: {
+                    courseId: cls.courseId,
+                    studentId: payload.userId
+                }
+            }
+        });
 
-        if (!isAuthorized) {
+        // Only lecturer of the course or an admin can see full details (including QR and full attendance list)
+        const isLecturerOrAdmin = payload.role === 'ADMIN' || (payload.role === 'LECTURER' && cls.course.lecturerId === payload.userId);
+
+        if (!isLecturerOrAdmin && !isStudentEnrolled) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
-        let currentQR = class.qrCodes[0];
+        // Return limited info for students
+        if (!isLecturerOrAdmin) {
+            return NextResponse.json({
+                cls: {
+                    id: cls.id,
+                    courseTitle: cls.course.title,
+                    courseCode: cls.course.code,
+                    joinCode: cls.course.joinCode,
+                    isActive: cls.isActive,
+                }
+            });
+        }
+
+        let currentQR = cls.qrCodes[0];
 
         // If QR is expired or missing, generate a new one
         if (!currentQR || currentQR.expiresAt < new Date()) {
             const nonce = crypto.randomBytes(16).toString('hex');
             const timestamp = Date.now();
-            const rawToken = `${class.id}-${timestamp}-${nonce}`;
+            const rawToken = `${cls.id}-${timestamp}-${nonce}`;
             const signedToken = crypto.createHmac('sha256', process.env.JWT_SECRET || 'secret')
                 .update(rawToken)
                 .digest('hex');
 
             currentQR = await prisma.qRCode.create({
                 data: {
-                    classId: class.id,
+                    clsId: cls.id,
                     token: signedToken,
                     nonce,
                     expiresAt: new Date(Date.now() + 15000) // Fast refresh: 15 seconds
@@ -72,13 +95,14 @@ export async function GET(
         }
 
         return NextResponse.json({
-            class: {
-                id: class.id,
-                courseTitle: class.course.title,
-                courseCode: class.course.code,
-                isActive: class.isActive,
-                attendanceCount: class.attendanceRecords.length,
-                attendanceRecords: class.attendanceRecords.map(r => ({
+            cls: {
+                id: cls.id,
+                courseTitle: cls.course.title,
+                courseCode: cls.course.code,
+                joinCode: cls.course.joinCode,
+                isActive: cls.isActive,
+                attendanceCount: cls.attendanceRecords.length,
+                attendanceRecords: cls.attendanceRecords.map((r: any) => ({
                     id: r.id,
                     studentName: r.student.fullName,
                     timestamp: r.createdAt,
@@ -91,7 +115,7 @@ export async function GET(
             }
         });
     } catch (error) {
-        console.error('Error fetching class:', error);
+        console.error('Error fetching cls:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

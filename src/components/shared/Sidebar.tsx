@@ -90,7 +90,10 @@ export default function Sidebar({ role }: SidebarProps) {
                 {/* Navigation Items */}
                 <nav className="flex-1 px-4 py-6 space-y-2">
                     {items.map((item) => {
-                        const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+                        const isDashboardRoot = item.href === '/lecturer' || item.href === '/student' || item.href === '/admin';
+                        const isActive = isDashboardRoot
+                            ? pathname === item.href
+                            : pathname.startsWith(item.href);
                         return (
                             <Link
                                 key={item.href}

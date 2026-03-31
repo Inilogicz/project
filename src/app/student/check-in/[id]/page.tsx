@@ -14,12 +14,31 @@ import DashboardLayout from '@/components/shared/DashboardLayout';
 
 export default function StudentCheckInPage() {
     const params = useParams();
-    const classId = params.id as string;
+    const clsId = params.id as string;
     const router = useRouter();
 
+    const [clsData, setClsData] = useState<any>(null);
     const [status, setStatus] = useState<'IDLE' | 'LOCATING' | 'SUBMITTING' | 'SUCCESS' | 'ERROR'>('IDLE');
     const [message, setMessage] = useState('');
     const [distance, setDistance] = useState<number | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchClsInfo() {
+            try {
+                const res = await fetch(`/api/classes/${clsId}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setClsData(data.cls);
+                }
+            } catch (err) {
+                console.error('Failed to fetch cls info:', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchClsInfo();
+    }, [clsId]);
 
     const handleCheckIn = async () => {
         if (!navigator.geolocation) {
@@ -36,7 +55,7 @@ export default function StudentCheckInPage() {
             setMessage('Verifying your attendance...');
 
             try {
-                const response = await fetch(`/api/classes/${classId}/attendance`, {
+                const response = await fetch(`/api/classes/${clsId}/attendance`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -66,6 +85,16 @@ export default function StudentCheckInPage() {
             setMessage('Could not access your location. Please enable location services.');
         }, { enableHighAccuracy: true });
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-bg-gray">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    const isInactive = clsData && !clsData.isActive;
 
     return (
         <DashboardLayout>
@@ -97,38 +126,58 @@ export default function StudentCheckInPage() {
                     ) : (
                         <>
                             <div className="space-y-4">
-                                <div className={`w-24 h-24 rounded-[3rem] flex items-center justify-center mx-auto transition-all duration-500 ${status === 'ERROR' ? 'bg-red-50 text-red-500' : 'bg-primary/5 text-primary'
+                                <div className={`w-24 h-24 rounded-[3rem] flex items-center justify-center mx-auto transition-all duration-500 ${status === 'ERROR' || isInactive ? 'bg-red-50 text-red-500' : 'bg-primary/5 text-primary'
                                     }`}>
                                     {status === 'LOCATING' || status === 'SUBMITTING' ? (
                                         <Loader2 size={48} className="animate-spin" />
-                                    ) : status === 'ERROR' ? (
+                                    ) : (status === 'ERROR' || isInactive) ? (
                                         <AlertCircle size={48} />
                                     ) : (
                                         <MapPin size={48} />
                                     )}
                                 </div>
-                                <h1 className="text-4xl font-black tracking-tight text-dark">
-                                    {status === 'IDLE' ? 'Direct Check-in' :
-                                        status === 'ERROR' ? 'Check-in Failed' : 'Validating...'}
-                                </h1>
+                                <div className="space-y-2">
+                                    <h1 className="text-4xl font-black tracking-tight text-dark">
+                                        {isInactive ? 'Class Completed' :
+                                            status === 'IDLE' ? 'Direct Check-in' :
+                                                status === 'ERROR' ? 'Check-in Failed' : 'Validating...'}
+                                    </h1>
+                                    {clsData && (
+                                        <p className="text-primary font-black uppercase tracking-widest text-[10px]">
+                                            {clsData.courseTitle} ({clsData.courseCode})
+                                        </p>
+                                    )}
+                                </div>
                                 <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] px-10 leading-relaxed">
-                                    {status === 'IDLE' ? 'Mark your attendance via your current location. You must be within the class boundary.' : message}
+                                    {isInactive ? 'This class has already been ended by the lecturer. Attendance is no longer being accepted.' :
+                                        status === 'IDLE' ? 'Mark your attendance via your current location. You must be within the cls boundary.' : message}
                                 </p>
                             </div>
 
-                            {status === 'IDLE' && (
+                            {!isInactive && (
+                                status === 'IDLE' ? (
+                                    <button
+                                        onClick={handleCheckIn}
+                                        className="w-full btn-primary py-6 rounded-[2rem] text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                    >
+                                        Verify My Location
+                                    </button>
+                                ) : status === 'ERROR' ? (
+                                    <button
+                                        onClick={handleCheckIn}
+                                        className="w-full bg-dark text-white font-black uppercase tracking-widest text-xs py-6 rounded-[2rem] hover:bg-black transition-all"
+                                    >
+                                        Try Again
+                                    </button>
+                                ) : null
+                            )}
+
+                            {isInactive && (
                                 <button
-                                    onClick={handleCheckIn}
-                                    className="w-full btn-primary py-6 rounded-[2rem] text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                    onClick={() => router.push('/student')}
+                                    className="w-full bg-bg-gray text-gray-400 font-black uppercase tracking-widest text-xs py-6 rounded-[2rem] hover:bg-gray-100 transition-all"
                                 >
-                                    Verify My Location
-                                </button>
-                            ) || status === 'ERROR' && (
-                                <button
-                                    onClick={handleCheckIn}
-                                    className="w-full bg-dark text-white font-black uppercase tracking-widest text-xs py-6 rounded-[2rem] hover:bg-black transition-all"
-                                >
-                                    Try Again
+                                    Back to Dashboard
                                 </button>
                             )}
                         </>
