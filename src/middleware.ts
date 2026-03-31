@@ -10,11 +10,12 @@ const PUBLIC_PATHS = [
     '/',
 ];
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Allow public paths
-    if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
+    const isPublicPath = PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/api/auth');
+    if (isPublicPath) {
         return NextResponse.next();
     }
 
