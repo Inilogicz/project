@@ -24,7 +24,6 @@ export default function QRScanner() {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
     useEffect(() => {
-        // Request location immediately
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -36,17 +35,37 @@ export default function QRScanner() {
             );
         }
 
-        const scanner = new Html5QrcodeScanner(
-            "reader",
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-      /* verbose= */ false
-        );
+        let html5QrCode: Html5Qrcode | null = null;
 
-        scanner.render(onScanSuccess, onScanFailure);
-        scannerRef.current = scanner;
+        const startScanner = async () => {
+            try {
+                html5QrCode = new Html5Qrcode("reader");
+                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    config,
+                    onScanSuccess,
+                    onScanFailure
+                );
+                setStatus('SCANNING');
+            } catch (err) {
+                console.error("Failed to start camera scanner:", err);
+                setStatus('ERROR');
+                setErrorMessage("Failed to access back camera. Ensure permissions are allowed.");
+            }
+        };
+
+        // Small delay to let the DOM element mount
+        const timer = setTimeout(() => {
+            startScanner();
+        }, 300);
 
         return () => {
-            scanner.clear().catch(error => console.error("Failed to clear scanner", error));
+            clearTimeout(timer);
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().catch(err => console.error("Stop error", err));
+            }
         };
     }, []);
 

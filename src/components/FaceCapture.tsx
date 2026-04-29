@@ -97,7 +97,7 @@ export function FaceCapture({ onCapture, buttonText = "Capture Face" }: FaceCapt
                         stopStream();
                         onCapture(descriptorArray);
                         setIsCapturing(false);
-                    }, 500);
+                    }, 100);
                 }
             } catch (err) {
                 console.error("Scanning error:", err);
@@ -150,7 +150,7 @@ export function FaceCapture({ onCapture, buttonText = "Capture Face" }: FaceCapt
                     <span className="text-xs font-bold uppercase tracking-widest">Enable Camera for Face Setup</span>
                 </button>
             ) : (
-                <div className="relative rounded-2xl overflow-hidden bg-black aspect-video flex items-center justify-center border-4 border-primary/20">
+                <div className="relative rounded-2xl overflow-hidden bg-black aspect-square md:aspect-video w-full max-w-md mx-auto flex items-center justify-center border-4 border-primary/20 shadow-xl">
                     <video
                         ref={videoRef}
                         autoPlay
