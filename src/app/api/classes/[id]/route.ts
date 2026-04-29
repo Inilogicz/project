@@ -101,16 +101,18 @@ export async function GET(
                 courseCode: cls.course.code,
                 joinCode: cls.course.joinCode,
                 isActive: cls.isActive,
-                attendanceCount: cls.attendanceRecords.length,
-                attendanceRecords: cls.attendanceRecords.map((r: any) => ({
-                    id: r.id,
-                    studentName: r.student.fullName,
-                    timestamp: r.createdAt,
-                    status: r.validationStatus
-                }))
+                attendanceCount: cls.attendanceRecords.filter((r: any) => r.validationStatus === 'VALID').length,
+                attendanceRecords: cls.attendanceRecords
+                    .filter((r: any) => r.validationStatus === 'VALID')
+                    .map((r: any) => ({
+                        id: r.id,
+                        studentName: r.student.fullName,
+                        timestamp: r.createdAt,
+                        status: r.validationStatus
+                    }))
             },
             qrCode: {
-                token: currentQR.token,
+                token: JSON.stringify({ clsId: cls.id, token: currentQR.token }),
                 expiresAt: currentQR.expiresAt
             }
         });

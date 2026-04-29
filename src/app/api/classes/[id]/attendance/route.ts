@@ -80,10 +80,17 @@ export async function POST(
         });
 
         if (existingRecord) {
-            return NextResponse.json({
-                status: ValidationStatus.DUPLICATE,
-                message: 'Attendance already marked',
-            }, { status: 200 });
+            if (existingRecord.validationStatus === ValidationStatus.VALID) {
+                return NextResponse.json({
+                    status: ValidationStatus.DUPLICATE,
+                    message: 'Attendance already verified successfully',
+                }, { status: 200 });
+            }
+            
+            // Allow overwriting a failed attempt
+            await prisma.attendanceRecord.delete({
+                where: { id: existingRecord.id }
+            });
         }
 
         // 4. Validate QR Token (if not link checkin)
@@ -133,18 +140,18 @@ export async function POST(
         );
 
         let validationStatus: ValidationStatus = ValidationStatus.VALID;
-        if (distance > cls.radius) {
+        if (isNaN(distance) || distance > cls.radius) {
             validationStatus = ValidationStatus.INVALID_LOCATION;
         }
 
-        // 6. Save Record
-        const record = await prisma.attendanceRecord.create({
+        // 6. Save Record for auditing purposes
+        await prisma.attendanceRecord.create({
             data: {
                 clsId,
                 studentId: payload.userId,
                 studentLatitude: latitude,
                 studentLongitude: longitude,
-                haversineDistanceMetres: distance,
+                haversineDistanceMetres: isNaN(distance) ? 0 : distance,
                 validationStatus,
             },
         });
@@ -152,8 +159,8 @@ export async function POST(
         if (validationStatus === ValidationStatus.INVALID_LOCATION) {
             return NextResponse.json({
                 status: validationStatus,
-                message: `Too far from location (${Math.round(distance)}m)`,
-                distance,
+                message: 'You are not eligible to sign attendance because you are outside the geofence parameters.',
+                distance: isNaN(distance) ? 0 : distance,
             }, { status: 400 });
         }
 

@@ -72,44 +72,30 @@ export default function QRScanner() {
     async function onScanSuccess(decodedText: string) {
         if (status === 'VALIDATING' || status === 'SUCCESS') return;
 
-        setScanResult(decodedText);
-        setStatus('VALIDATING');
-
-        if (scannerRef.current) {
-            // Pause scanner if possible or just ignore new scans via status check
-        }
-
         try {
-            // Simulate API call for attendance submission
-            // In real implementation, this calls /api/classes/[id]/attendance
-            // 1. Parse decodedText (token)
-            // 2. Extract clsId from token or assume it's part of the scanned payload
+            let clsId = '';
+            let token = '';
 
-            const payload = JSON.parse(decodedText);
-            const clsId = payload.clsId;
-
-            if (!location) {
-                throw new Error('Location data not available. Please enable GPS.');
-            }
-
-            const response = await fetch(`/api/classes/${clsId}/attendance`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    qrToken: decodedText,
-                    latitude: location.lat,
-                    longitude: location.lng
-                })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                setStatus('SUCCESS');
+            if (decodedText.startsWith('{')) {
+                const payload = JSON.parse(decodedText);
+                clsId = payload.clsId;
+                token = payload.token;
+            } else if (decodedText.includes('/student/check-in/')) {
+                const url = new URL(decodedText);
+                const parts = url.pathname.split('/');
+                clsId = parts[parts.length - 1];
+                token = url.searchParams.get('qrToken') || '';
             } else {
-                setStatus('ERROR');
-                setErrorMessage(data.message || 'Validation failed');
+                // Try searching for class ID by treating text as raw token?
+                // We don't have a lookup API, so fail gracefully
+                throw new Error('Unrecognized QR data format.');
             }
+
+            if (!clsId) throw new Error('Class identification missing.');
+
+            setStatus('SUCCESS');
+            // Perform hard redirect to the face capture page
+            window.location.href = `/student/check-in/${clsId}?qrToken=${token}`;
         } catch (error: any) {
             setStatus('ERROR');
             setErrorMessage(error.message || 'Invalid QR code signature');
