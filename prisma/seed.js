@@ -37,7 +37,7 @@ async function main() {
         },
     });
 
-    // Create Student
+
     await prisma.user.upsert({
         where: { institutionalEmail: 'student@university.edu' },
         update: {},
