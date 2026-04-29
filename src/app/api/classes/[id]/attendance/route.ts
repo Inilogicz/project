@@ -45,6 +45,16 @@ export async function POST(
             return NextResponse.json({ error: 'Class is not active' }, { status: 400 });
         }
 
+        // Auto-end classes older than 6 hours
+        const sixHoursInMs = 6 * 60 * 60 * 1000;
+        if (Date.now() - new Date(cls.startTime).getTime() > sixHoursInMs) {
+            await prisma.cls.update({
+                where: { id: clsId },
+                data: { isActive: false, endTime: new Date(new Date(cls.startTime).getTime() + sixHoursInMs) }
+            });
+            return NextResponse.json({ error: 'Class has expired and is no longer active' }, { status: 400 });
+        }
+
         // 2. Validate Student Enrollment
         const enrollment = await prisma.enrollment.findUnique({
             where: {
