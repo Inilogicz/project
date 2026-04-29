@@ -112,7 +112,7 @@ export async function GET(
                     }))
             },
             qrCode: {
-                token: JSON.stringify({ clsId: cls.id, token: currentQR.token }),
+                token: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/student/check-in/${cls.id}?qrToken=${currentQR.token}`,
                 expiresAt: currentQR.expiresAt
             }
         });

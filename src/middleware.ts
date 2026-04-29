@@ -22,9 +22,9 @@ export async function middleware(request: NextRequest) {
     const token = request.cookies.get('auth_token')?.value;
 
     if (!token) {
-        // Redirect to login if trying to access protected route without token
         const url = request.nextUrl.clone();
         url.pathname = '/login';
+        url.searchParams.set('callbackUrl', pathname);
         url.searchParams.set('reason', 'no_token_cookie');
         return NextResponse.redirect(url);
     }
@@ -34,6 +34,7 @@ export async function middleware(request: NextRequest) {
     if (!payload) {
         const url = request.nextUrl.clone();
         url.pathname = '/login';
+        url.searchParams.set('callbackUrl', pathname);
         url.searchParams.set('reason', 'invalid_jwt_payload');
         return NextResponse.redirect(url);
     }

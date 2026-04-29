@@ -28,9 +28,16 @@ export default function LoginPage() {
 
             if (response.ok) {
                 // Redirect based on role using hard navigation to prevent cookie race conditions
-                if (data.user.role === 'LECTURER') window.location.href = '/lecturer';
-                else if (data.user.role === 'STUDENT') window.location.href = '/student';
-                else window.location.href = '/admin';
+                const searchParams = new URLSearchParams(window.location.search);
+                const callbackUrl = searchParams.get('callbackUrl');
+
+                if (callbackUrl) {
+                    window.location.href = callbackUrl;
+                } else {
+                    if (data.user.role === 'LECTURER') window.location.href = '/lecturer';
+                    else if (data.user.role === 'STUDENT') window.location.href = '/student';
+                    else window.location.href = '/admin';
+                }
             } else {
                 setError(data.error || 'Login failed');
             }

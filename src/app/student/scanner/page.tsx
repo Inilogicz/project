@@ -1,170 +1,231 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Html5Qrcode } from 'html5-qrcode';
 import {
     ArrowLeft,
-    X,
     CheckCircle2,
     AlertCircle,
-    Settings,
     MapPin,
     RefreshCw,
     Camera,
-    Activity
+    Activity,
+    ScanLine,
+    XCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/ui-utils';
 
+type ScanStatus = 'IDLE' | 'STARTING' | 'SCANNING' | 'VALIDATING' | 'SUCCESS' | 'ERROR';
+
 export default function QRScanner() {
-    const [scanResult, setScanResult] = useState<string | null>(null);
-    const [status, setStatus] = useState<'IDLE' | 'SCANNING' | 'VALIDATING' | 'SUCCESS' | 'ERROR'>('IDLE');
+    const [status, setStatus] = useState<ScanStatus>('IDLE');
     const [errorMessage, setErrorMessage] = useState<string>('');
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-    const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
+    // Stable refs — survive re-renders
+    const qrRef = useRef<Html5Qrcode | null>(null);
+    const isProcessingRef = useRef(false); // prevent double-fire from rapid scans
+    const isMountedRef = useRef(true);
+
+    // ── Geolocation ──────────────────────────────────────────────────────────
     useEffect(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                (err) => {
-                    console.error(err);
-                    setStatus('ERROR');
-                    setErrorMessage('Location access is required for attendance validation.');
-                }
+                () => {} // GPS failure is non-fatal; server will reject if needed
             );
         }
-
-        let html5QrCode: Html5Qrcode | null = null;
-
-        const startScanner = async () => {
-            try {
-                html5QrCode = new Html5Qrcode("reader");
-                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-                
-                await html5QrCode.start(
-                    { facingMode: "environment" },
-                    config,
-                    onScanSuccess,
-                    onScanFailure
-                );
-                setStatus('SCANNING');
-            } catch (err) {
-                console.error("Failed to start camera scanner:", err);
-                setStatus('ERROR');
-                setErrorMessage("Failed to access back camera. Ensure permissions are allowed.");
-            }
-        };
-
-        // Small delay to let the DOM element mount
-        const timer = setTimeout(() => {
-            startScanner();
-        }, 300);
-
-        return () => {
-            clearTimeout(timer);
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().catch(err => console.error("Stop error", err));
-            }
-        };
+        return () => { isMountedRef.current = false; };
     }, []);
 
-    async function onScanSuccess(decodedText: string) {
-        if (status === 'VALIDATING' || status === 'SUCCESS') return;
+    // ── Camera start / stop ──────────────────────────────────────────────────
+    const stopCamera = useCallback(async () => {
+        if (qrRef.current?.isScanning) {
+            try { await qrRef.current.stop(); } catch (_) {}
+        }
+    }, []);
+
+    const startCamera = useCallback(async () => {
+        if (!isMountedRef.current) return;
+        setStatus('STARTING');
+        isProcessingRef.current = false;
+
+        // Brief delay so the DOM #reader div is definitely mounted
+        await new Promise(r => setTimeout(r, 300));
+
+        try {
+            if (!qrRef.current) {
+                qrRef.current = new Html5Qrcode('reader');
+            }
+            await qrRef.current.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 240, height: 240 } },
+                handleScanSuccess,
+                () => {} // per-frame failures are noise
+            );
+            if (isMountedRef.current) setStatus('SCANNING');
+        } catch (err) {
+            console.error('Camera start error:', err);
+            if (isMountedRef.current) {
+                setStatus('ERROR');
+                setErrorMessage('Could not access camera. Please allow camera permissions and try again.');
+            }
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Start camera on mount, clean up on unmount
+    useEffect(() => {
+        startCamera();
+        return () => { stopCamera(); };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── Scan success handler ─────────────────────────────────────────────────
+    async function handleScanSuccess(decodedText: string) {
+        // Guard: only process once per scan session
+        if (isProcessingRef.current) return;
+        isProcessingRef.current = true;
+
+        // Stop camera immediately so it doesn't keep firing
+        await stopCamera();
+        setStatus('VALIDATING');
 
         try {
             let clsId = '';
-            let token = '';
+            let qrToken = '';
 
-            if (decodedText.startsWith('{')) {
-                const payload = JSON.parse(decodedText);
-                clsId = payload.clsId;
-                token = payload.token;
-            } else if (decodedText.includes('/student/check-in/')) {
+            // ── Path A: In-app scanner → QR contains a full URL ──────────────
+            // The QR is generated as:
+            //   https://yourapp.com/student/check-in/<clsId>?qrToken=<token>
+            if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
                 const url = new URL(decodedText);
-                const parts = url.pathname.split('/');
+                const parts = url.pathname.split('/').filter(Boolean);
+                // pathname is /student/check-in/<clsId>
                 clsId = parts[parts.length - 1];
-                token = url.searchParams.get('qrToken') || '';
+                qrToken = url.searchParams.get('qrToken') || '';
+
+            // ── Path B: Raw JSON (legacy / fallback) ─────────────────────────
+            } else if (decodedText.startsWith('{')) {
+                const parsed = JSON.parse(decodedText);
+                clsId = parsed.clsId || '';
+                qrToken = parsed.token || '';
+
             } else {
-                // Try searching for class ID by treating text as raw token?
-                // We don't have a lookup API, so fail gracefully
-                throw new Error('Unrecognized QR data format.');
+                throw new Error('Oops! This QR code does not look right. Please re-scan or ask your lecturer.');
             }
 
-            if (!clsId) throw new Error('Class identification missing.');
+            if (!clsId) {
+                throw new Error('Could not identify the class from this QR code. Please re-scan.');
+            }
 
+            // Brief success state so the user sees the checkmark, then redirect
             setStatus('SUCCESS');
-            // Perform hard redirect to the face capture page
-            window.location.href = `/student/check-in/${clsId}?qrToken=${token}`;
-        } catch (error: any) {
+            setTimeout(() => {
+                window.location.href = `/student/check-in/${clsId}?qrToken=${encodeURIComponent(qrToken)}`;
+            }, 800);
+
+        } catch (err: any) {
             setStatus('ERROR');
-            setErrorMessage(error.message || 'Invalid QR code signature');
+            setErrorMessage(err.message || 'Oops! Something went wrong. Please re-scan.');
         }
     }
 
-    function onScanFailure(error: any) {
-        // Too noisy to log, but status stays IDLE/SCANNING
-    }
+    // ── Re-scan: reset everything and restart camera ─────────────────────────
+    const handleRescan = async () => {
+        setErrorMessage('');
+        // If old instance exists but isn't scanning, destroy it so we get a fresh one
+        if (qrRef.current && !qrRef.current.isScanning) {
+            try { await qrRef.current.clear(); } catch (_) {}
+            qrRef.current = null;
+        }
+        await startCamera();
+    };
+
+    // ── UI ───────────────────────────────────────────────────────────────────
+    const scannerBusy = status !== 'IDLE' && status !== 'SCANNING' && status !== 'STARTING';
 
     return (
-        <div className="min-h-screen bg-dark overflow-hidden flex flex-col relative">
-            {/* Header Overlay */}
+        <div className="min-h-screen bg-dark overflow-hidden flex flex-col relative select-none">
+
+            {/* Header */}
             <div className="p-6 flex items-center justify-between z-20">
-                <Link href="/student" className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all">
+                <Link
+                    href="/student"
+                    className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all"
+                >
                     <ArrowLeft size={20} />
                 </Link>
-                <span className="text-white font-black uppercase tracking-widest text-sm">QR SCANNER</span>
-                <button className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-all">
-                    <Settings size={20} />
-                </button>
+                <span className="text-white font-black uppercase tracking-widest text-sm">QR Scanner</span>
+                <div className="w-10" /> {/* spacer */}
             </div>
 
-            {/* Main Viewport */}
-            <div className="flex-1 flex flex-col items-center justify-center -mt-20">
-                <div className="relative group">
-                    {/* Scanner Box Visuals */}
-                    <div className="absolute -inset-4 border-2 border-primary/30 rounded-[2.5rem] pointer-events-none animate-pulse"></div>
+            {/* Scanner viewport */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-8 px-6 -mt-10">
 
-                    <div className="w-[300px] h-[300px] bg-black/40 rounded-[2rem] overflow-hidden border border-white/10 relative">
-                        {/* HTML5 QR Code Container */}
-                        <div id="reader" className="w-full h-full object-cover"></div>
+                {/* Camera box */}
+                <div className="relative">
+                    {/* Animated border ring */}
+                    <div className={cn(
+                        "absolute -inset-4 rounded-[2.5rem] pointer-events-none border-2 transition-colors duration-500",
+                        status === 'SCANNING' ? "border-primary/40 animate-pulse" :
+                        status === 'SUCCESS'  ? "border-green-400/60" :
+                        status === 'ERROR'    ? "border-red-400/40" :
+                                               "border-white/10"
+                    )} />
 
-                        {/* Dark Mask Overlays for UI */}
-                        {status !== 'IDLE' && status !== 'SCANNING' && (
-                            <div className="absolute inset-0 bg-dark/80 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10">
-                                {status === 'VALIDATING' && (
-                                    <RefreshCw size={48} className="text-primary animate-spin mb-4" />
-                                )}
-                                {status === 'SUCCESS' && (
-                                    <CheckCircle2 size={64} className="text-primary mb-4 animate-bounce" />
-                                )}
-                                {status === 'ERROR' && (
-                                    <AlertCircle size={64} className="text-accent-pink mb-4" />
-                                )}
+                    {/* Corner brackets (decorative) */}
+                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-2 border-l-2 border-primary rounded-tl-lg" />
+                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-2 border-r-2 border-primary rounded-tr-lg" />
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-2 border-l-2 border-primary rounded-bl-lg" />
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-2 border-r-2 border-primary rounded-br-lg" />
+
+                    {/* Camera feed */}
+                    <div className="w-[300px] h-[300px] bg-black/60 rounded-[2rem] overflow-hidden border border-white/10 relative">
+                        <div id="reader" className="w-full h-full" />
+
+                        {/* Scanning laser line */}
+                        {status === 'SCANNING' && (
+                            <div className="absolute inset-x-4 top-1/2 h-0.5 bg-primary/70 shadow-[0_0_12px_rgba(var(--primary-rgb),0.8)] animate-bounce" />
+                        )}
+
+                        {/* Starting overlay */}
+                        {status === 'STARTING' && (
+                            <div className="absolute inset-0 bg-dark/80 flex flex-col items-center justify-center gap-3">
+                                <RefreshCw size={36} className="text-primary animate-spin" />
+                                <p className="text-white/60 text-xs font-bold uppercase tracking-widest">Starting Camera...</p>
+                            </div>
+                        )}
+
+                        {/* Result overlay */}
+                        {scannerBusy && (
+                            <div className="absolute inset-0 bg-dark/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10 gap-3">
+                                {status === 'VALIDATING' && <RefreshCw size={52} className="text-primary animate-spin" />}
+                                {status === 'SUCCESS'    && <CheckCircle2 size={60} className="text-green-400" />}
+                                {status === 'ERROR'      && <XCircle size={60} className="text-red-400" />}
 
                                 <h3 className={cn(
-                                    "text-xl font-black uppercase tracking-tight mb-2",
-                                    status === 'SUCCESS' ? "text-primary" : "text-white"
+                                    "text-lg font-black uppercase tracking-tight",
+                                    status === 'SUCCESS' ? "text-green-400" :
+                                    status === 'ERROR'   ? "text-red-300" :
+                                                          "text-white"
                                 )}>
-                                    {status === 'VALIDATING' && 'Validating...'}
-                                    {status === 'SUCCESS' && 'Verified'}
-                                    {status === 'ERROR' && 'Failed'}
+                                    {status === 'VALIDATING' && 'Reading QR...'}
+                                    {status === 'SUCCESS'    && 'QR Verified!'}
+                                    {status === 'ERROR'      && 'Scan Failed'}
                                 </h3>
-                                <p className="text-sm text-gray-300 font-medium leading-relaxed">
-                                    {status === 'VALIDATING' && 'Checking location and token signature...'}
-                                    {status === 'SUCCESS' && 'Attendance marked successfully. You can now leave the cls.'}
-                                    {status === 'ERROR' && errorMessage}
+
+                                <p className="text-gray-300 text-xs font-medium leading-relaxed max-w-[200px]">
+                                    {status === 'VALIDATING' && 'Accessing class security token...'}
+                                    {status === 'SUCCESS'    && 'Launching facial verification...'}
+                                    {status === 'ERROR'      && errorMessage}
                                 </p>
 
-                                {(status === 'SUCCESS' || status === 'ERROR') && (
+                                {status === 'ERROR' && (
                                     <button
-                                        onClick={() => {
-                                            setStatus('IDLE');
-                                            setScanResult(null);
-                                        }}
-                                        className="mt-6 px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-bold uppercase tracking-widest transition-all"
+                                        onClick={handleRescan}
+                                        className="mt-2 px-5 py-2 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2"
                                     >
-                                        Try Again
+                                        <ScanLine size={14} /> Re-scan
                                     </button>
                                 )}
                             </div>
@@ -172,42 +233,50 @@ export default function QRScanner() {
                     </div>
                 </div>
 
-                {/* Feedback Area */}
-                <div className="mt-12 text-center max-w-xs space-y-4">
-                    <div className="flex items-center gap-2 justify-center text-primary/80 font-bold text-xs uppercase tracking-[0.2em] animate-pulse">
-                        <Camera size={14} />
-                        <span>Searching for QR...</span>
-                    </div>
-                    <h2 className="text-2xl font-black text-white tracking-tight leading-none">Ready to Check-in?</h2>
-                    <p className="text-gray-400 text-sm font-medium leading-relaxed">
-                        Align the QR code within the frame to automatically mark your attendance.
-                    </p>
+                {/* Instruction text */}
+                <div className="text-center space-y-2 max-w-xs">
+                    {status === 'SCANNING' ? (
+                        <>
+                            <div className="flex items-center gap-2 justify-center text-primary font-bold text-xs uppercase tracking-[0.15em] animate-pulse">
+                                <Camera size={13} /> Searching for QR code...
+                            </div>
+                            <h2 className="text-2xl font-black text-white tracking-tight">Ready to Check-in?</h2>
+                            <p className="text-gray-400 text-sm leading-relaxed">
+                                Point your camera at the lecturer's QR code to mark attendance.
+                            </p>
+                        </>
+                    ) : status === 'STARTING' ? (
+                        <p className="text-gray-400 text-sm">Initialising camera...</p>
+                    ) : status === 'ERROR' ? (
+                        <p className="text-gray-400 text-sm">Tap <strong className="text-white">Re-scan</strong> to try again.</p>
+                    ) : null}
                 </div>
             </div>
 
-            {/* Footer Info */}
-            <div className="p-10 flex items-center justify-center gap-4 text-white/40 z-20">
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/5 text-[10px] font-black uppercase tracking-widest">
-                    <MapPin size={12} className={location ? "text-primary" : "text-accent-pink"} />
-                    {location ? "GPS Active" : "GPS Required"}
+            {/* Footer status pills */}
+            <div className="p-8 flex items-center justify-center gap-3 z-20">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50">
+                    <MapPin size={11} className={location ? "text-primary" : "text-red-400"} />
+                    {location ? 'GPS Active' : 'GPS Required'}
                 </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/5 text-[10px] font-black uppercase tracking-widest">
-                    <Activity size={12} className="text-primary" />
-                    Secure Token
+                <div className={cn(
+                    "flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/50",
+                    status === 'SCANNING' && "border-primary/30"
+                )}>
+                    <Activity size={11} className={status === 'SCANNING' ? "text-primary" : "text-white/30"} />
+                    {status === 'SCANNING' ? 'Live' : 'Standby'}
                 </div>
             </div>
 
-            {/* Styles to fix html5-qrcode UI */}
+            {/* Override html5-qrcode default UI */}
             <style jsx global>{`
-        #reader__dashboard { display: none !important; }
-        #reader__header_message { display: none !important; }
-        #reader { border: none !important; }
-        #reader video { 
-          object-fit: cover !important;
-          width: 100% !important;
-          height: 100% !important;
-        }
-      `}</style>
+                #reader__dashboard        { display: none !important; }
+                #reader__header_message   { display: none !important; }
+                #reader__status_span      { display: none !important; }
+                #reader                   { border: none !important; background: transparent !important; }
+                #reader video             { object-fit: cover !important; width: 100% !important; height: 100% !important; border-radius: 0 !important; }
+                #reader__scan_region img  { display: none !important; }
+            `}</style>
         </div>
     );
 }

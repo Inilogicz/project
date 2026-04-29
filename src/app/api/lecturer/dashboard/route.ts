@@ -22,6 +22,13 @@ export async function GET() {
     const lecturerId = payload.userId;
 
     try {
+        // Expire active classes older than 6 hours
+        const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+        await prisma.cls.updateMany({
+            where: { course: { lecturerId }, isActive: true, startTime: { lt: sixHoursAgo } },
+            data: { isActive: false, endTime: new Date() }
+        });
+
         // Fetch stats
         const [totalCourses, totalStudents, activeClses] = await Promise.all([
             prisma.course.count({ where: { lecturerId } }),

@@ -66,7 +66,7 @@ export async function POST(
         });
 
         if (!enrollment) {
-            return NextResponse.json({ error: 'Not enrolled in this course' }, { status: 403 });
+            return NextResponse.json({ error: 'Oops! You are not registered for this course. Please verify your enrollment status.' }, { status: 403 });
         }
 
         // 3. Prevent Duplicates
