@@ -1,6 +1,9 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { verifyJWT } from '@/lib/auth';
+import prisma from '@/lib/prisma';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
     const cookieStore = await cookies();
@@ -16,13 +19,32 @@ export async function GET() {
         return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    return NextResponse.json({
-        user: {
-            id: payload.userId,
-            email: payload.email,
-            role: payload.role,
-            // Full name can be fetched from DB if needed, 
-            // but for now, the payload has everything essential.
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: payload.userId },
+            select: {
+                id: true,
+                fullName: true,
+                email: true,
+                role: true,
+                department: true,
+                matricNumber: true,
+                createdAt: true,
+            }
+        });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
-    });
+
+        return NextResponse.json({
+            user: {
+                ...user,
+                institutionalEmail: user.email, // alias expected by profile page
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
 }

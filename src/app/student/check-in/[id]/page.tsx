@@ -32,6 +32,19 @@ export default function StudentCheckInPage() {
                 if (res.ok) {
                     const data = await res.json();
                     setClsData(data.cls);
+                } else if (res.status === 401 || res.status === 403) {
+                    router.replace('/login?callbackUrl=/student/check-in/' + clsId);
+                    return;
+                }
+
+                // Check if this student already has a VALID record for this class
+                const statusRes = await fetch(`/api/classes/${clsId}/my-status`);
+                if (statusRes.ok) {
+                    const statusData = await statusRes.json();
+                    if (statusData.alreadyMarked) {
+                        router.replace('/student?notice=already_marked');
+                        return;
+                    }
                 }
             } catch (err) {
                 console.error('Failed to fetch cls info:', err);
@@ -71,13 +84,18 @@ export default function StudentCheckInPage() {
                 const result = await response.json();
 
                 if (response.ok) {
+                    // DUPLICATE = already marked successfully — just go home
+                    if (result.status === 'DUPLICATE') {
+                        router.push('/student?notice=already_marked');
+                        return;
+                    }
                     setStatus('SUCCESS');
                     setMessage('Attendance marked successfully!');
-                    setDistance(result.distance);
+                    setDistance(typeof result.distance === 'number' && !isNaN(result.distance) ? result.distance : null);
                 } else {
                     setStatus('ERROR');
                     setMessage(result.message || result.error || 'Failed to mark attendance');
-                    if (result.distance) setDistance(result.distance);
+                    if (typeof result.distance === 'number' && !isNaN(result.distance)) setDistance(result.distance);
                 }
             } catch (err) {
                 setStatus('ERROR');

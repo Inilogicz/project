@@ -183,9 +183,9 @@ export default function QRScanner() {
                     <div className="w-[300px] h-[300px] bg-black/60 rounded-[2rem] overflow-hidden border border-white/10 relative">
                         <div id="reader" className="w-full h-full" />
 
-                        {/* Scanning laser line */}
+                        {/* Scanning laser line — sweeps top to bottom */}
                         {status === 'SCANNING' && (
-                            <div className="absolute inset-x-4 top-1/2 h-0.5 bg-primary/70 shadow-[0_0_12px_rgba(var(--primary-rgb),0.8)] animate-bounce" />
+                            <div className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_10px_2px_rgba(99,102,241,0.7)] scanline-sweep" />
                         )}
 
                         {/* Starting overlay */}
@@ -268,7 +268,7 @@ export default function QRScanner() {
                 </div>
             </div>
 
-            {/* Override html5-qrcode default UI */}
+            {/* Override html5-qrcode default UI + scanner sweep animation */}
             <style jsx global>{`
                 #reader__dashboard        { display: none !important; }
                 #reader__header_message   { display: none !important; }
@@ -276,6 +276,16 @@ export default function QRScanner() {
                 #reader                   { border: none !important; background: transparent !important; }
                 #reader video             { object-fit: cover !important; width: 100% !important; height: 100% !important; border-radius: 0 !important; }
                 #reader__scan_region img  { display: none !important; }
+
+                @keyframes scanline {
+                    0%   { top: 0%; }
+                    50%  { top: calc(100% - 2px); }
+                    100% { top: 0%; }
+                }
+                .scanline-sweep {
+                    position: absolute;
+                    animation: scanline 2s ease-in-out infinite;
+                }
             `}</style>
         </div>
     );
