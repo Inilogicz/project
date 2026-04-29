@@ -25,7 +25,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        const token = signJWT({
+        const token = await signJWT({
             userId: user.id,
             email: user.institutionalEmail,
             role: user.role as unknown as Role,
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         response.cookies.set('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            sameSite: 'lax',
             maxAge: 60 * 60 * 24, // 1 day
             path: '/',
         });

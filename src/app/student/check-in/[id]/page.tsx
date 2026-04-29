@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import DashboardLayout from '@/components/shared/DashboardLayout';
+import { FaceCapture } from '@/components/FaceCapture';
 
 export default function StudentCheckInPage() {
     const params = useParams();
@@ -22,6 +23,7 @@ export default function StudentCheckInPage() {
     const [message, setMessage] = useState('');
     const [distance, setDistance] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
+    const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
 
     useEffect(() => {
         async function fetchClsInfo() {
@@ -61,7 +63,8 @@ export default function StudentCheckInPage() {
                     body: JSON.stringify({
                         latitude: pos.coords.latitude,
                         longitude: pos.coords.longitude,
-                        isLinkCheckin: true // Tell API to skip QR token check
+                        isLinkCheckin: true, // Tell API to skip QR token check
+                        faceDescriptor
                     })
                 });
 
@@ -156,15 +159,27 @@ export default function StudentCheckInPage() {
 
                             {!isInactive && (
                                 status === 'IDLE' ? (
-                                    <button
-                                        onClick={handleCheckIn}
-                                        className="w-full btn-primary py-6 rounded-[2rem] text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                                    >
-                                        Verify My Location
-                                    </button>
+                                    <div className="space-y-6">
+                                        {!faceDescriptor ? (
+                                            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                                                <p className="text-xs font-bold text-gray-500 mb-4 uppercase tracking-widest text-center">Verify Identity First</p>
+                                                <FaceCapture onCapture={setFaceDescriptor} buttonText="Verify Face" />
+                                            </div>
+                                        ) : (
+                                            <button
+                                                onClick={handleCheckIn}
+                                                className="w-full btn-primary py-6 rounded-[2rem] text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                            >
+                                                Submit Location & Attendance
+                                            </button>
+                                        )}
+                                    </div>
                                 ) : status === 'ERROR' ? (
                                     <button
-                                        onClick={handleCheckIn}
+                                        onClick={() => {
+                                            setFaceDescriptor(null);
+                                            setStatus('IDLE');
+                                        }}
                                         className="w-full bg-dark text-white font-black uppercase tracking-widest text-xs py-6 rounded-[2rem] hover:bg-black transition-all"
                                     >
                                         Try Again

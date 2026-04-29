@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { verifyJWT } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
@@ -11,9 +13,11 @@ export async function GET() {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const payload = verifyJWT(token);
+    const payload = await verifyJWT(token);
+    console.log('Dashboard Auth Payload:', payload);
 
     if (!payload || payload.role !== 'STUDENT') {
+        console.log('Access Denied: Payload invalid or role is not STUDENT');
         return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

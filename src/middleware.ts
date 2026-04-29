@@ -10,11 +10,11 @@ const PUBLIC_PATHS = [
     '/',
 ];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Allow public paths
-    const isPublicPath = PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/api/auth');
+    const isPublicPath = PUBLIC_PATHS.includes(pathname) || pathname.startsWith('/api/auth') || pathname.startsWith('/models');
     if (isPublicPath) {
         return NextResponse.next();
     }
@@ -25,14 +25,16 @@ export function middleware(request: NextRequest) {
         // Redirect to login if trying to access protected route without token
         const url = request.nextUrl.clone();
         url.pathname = '/login';
+        url.searchParams.set('reason', 'no_token_cookie');
         return NextResponse.redirect(url);
     }
 
-    const payload = verifyJWT(token);
+    const payload = await verifyJWT(token);
 
     if (!payload) {
         const url = request.nextUrl.clone();
         url.pathname = '/login';
+        url.searchParams.set('reason', 'invalid_jwt_payload');
         return NextResponse.redirect(url);
     }
 
@@ -54,6 +56,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico).*)',
+        '/((?!_next/static|_next/image|favicon.ico|models).*)',
     ],
 };

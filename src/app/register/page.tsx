@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { UserPlus, Mail, Lock, User, BookOpen, Fingerprint, QrCode } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/ui-utils';
+import { FaceCapture } from '@/components/FaceCapture';
 
 export default function RegisterPage() {
     const [role, setRole] = useState<'STUDENT' | 'LECTURER'>('STUDENT');
@@ -14,6 +15,7 @@ export default function RegisterPage() {
         password: '',
         department: '',
         matricNumber: '',
+        faceEmbedding: null as number[] | null,
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -21,6 +23,12 @@ export default function RegisterPage() {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (role === 'STUDENT' && !formData.faceEmbedding) {
+            setError('Please complete the face setup before registering.');
+            return;
+        }
+
         setIsLoading(true);
         setError('');
 
@@ -149,6 +157,19 @@ export default function RegisterPage() {
                                         required={role === 'STUDENT'}
                                     />
                                 </div>
+                            </div>
+                        )}
+
+                        {role === 'STUDENT' && (
+                            <div className="md:col-span-2 space-y-2 mt-4">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Facial Recognition Setup (Required)</label>
+                                <p className="text-xs text-gray-500 mb-2">We use facial recognition to prevent impersonation during attendance check-ins. Please ensure your face is clearly visible.</p>
+                                <FaceCapture 
+                                    onCapture={(descriptor) => {
+                                        setFormData({ ...formData, faceEmbedding: descriptor });
+                                        setError('');
+                                    }} 
+                                />
                             </div>
                         )}
 

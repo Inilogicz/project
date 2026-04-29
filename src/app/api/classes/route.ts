@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
         const token = request.cookies.get('auth_token')?.value;
         if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-        const payload = verifyJWT(token);
+        const payload = await verifyJWT(token);
         if (!payload || payload.role !== Role.LECTURER) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }

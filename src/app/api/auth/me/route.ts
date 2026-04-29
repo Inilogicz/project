@@ -10,7 +10,7 @@ export async function GET() {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const payload = verifyJWT(token);
+    const payload = await verifyJWT(token);
 
     if (!payload) {
         return NextResponse.json({ error: 'Invalid token' }, { status: 401 });

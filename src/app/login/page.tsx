@@ -27,10 +27,10 @@ export default function LoginPage() {
             const data = await response.json();
 
             if (response.ok) {
-                // Redirect based on role
-                if (data.user.role === 'LECTURER') router.push('/lecturer');
-                else if (data.user.role === 'STUDENT') router.push('/student');
-                else router.push('/admin');
+                // Redirect based on role using hard navigation to prevent cookie race conditions
+                if (data.user.role === 'LECTURER') window.location.href = '/lecturer';
+                else if (data.user.role === 'STUDENT') window.location.href = '/student';
+                else window.location.href = '/admin';
             } else {
                 setError(data.error || 'Login failed');
             }

@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { hashPassword } from '@/lib/auth';
+import { hashPassword, signJWT } from '@/lib/auth';
 import { Role } from '@/types/enums';
 
 export async function POST(request: Request) {
     try {
-        const { fullName, email, password, role, department, matricNumber } = await request.json();
+        const { fullName, email, password, role, department, matricNumber, faceEmbedding } = await request.json();
 
         if (!fullName || !email || !password || !role) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -23,6 +23,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Matric number is required for students' }, { status: 400 });
         }
 
+        if (role === Role.STUDENT && (!faceEmbedding || !Array.isArray(faceEmbedding) || faceEmbedding.length !== 128)) {
+            return NextResponse.json({ error: 'Valid face embedding is required for students' }, { status: 400 });
+        }
+
         const hashedPassword = await hashPassword(password);
 
         const user = await prisma.user.create({
@@ -36,6 +40,21 @@ export async function POST(request: Request) {
             },
         });
 
+        if (role === Role.STUDENT && faceEmbedding) {
+            await prisma.faceEmbedding.create({
+                data: {
+                    userId: user.id,
+                    embeddingVector: faceEmbedding,
+                }
+            });
+        }
+
+        const token = await signJWT({
+            userId: user.id,
+            email: user.institutionalEmail,
+            role: user.role as unknown as Role,
+        });
+
         return NextResponse.json({
             message: 'User registered successfully',
             user: {
@@ -44,6 +63,7 @@ export async function POST(request: Request) {
                 email: user.institutionalEmail,
                 role: user.role,
             },
+            token,
         }, { status: 201 });
     } catch (error) {
         console.error('Registration error:', error);
