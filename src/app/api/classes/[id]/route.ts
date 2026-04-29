@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { verifyJWT } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 import crypto from 'crypto';
 
 export async function GET(
-    request: Request,
+    request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id: clsId } = await params;
@@ -112,7 +112,8 @@ export async function GET(
                     }))
             },
             qrCode: {
-                token: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/student/check-in/${cls.id}?qrToken=${currentQR.token}`,
+                // Derive the origin from the live request so it's correct in all environments
+                token: `${request.nextUrl.origin}/student/check-in/${cls.id}?qrToken=${currentQR.token}`,
                 expiresAt: currentQR.expiresAt
             }
         });
