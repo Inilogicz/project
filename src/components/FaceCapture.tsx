@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as faceapi from 'face-api.js';
 import { Camera, RefreshCw, CheckCircle } from 'lucide-react';
+import { cn } from '@/lib/ui-utils';
+
 
 interface FaceCaptureProps {
     onCapture: (descriptor: number[]) => void;
@@ -71,48 +73,68 @@ export function FaceCapture({ onCapture, buttonText = "Capture Face" }: FaceCapt
         setIsStreaming(false);
     };
 
+    const [isVerifying, setIsVerifying] = useState(false);
+
     // Auto-scanning logic
     useEffect(() => {
         let scanInterval: NodeJS.Timeout;
 
         const scanFace = async () => {
-            if (!videoRef.current || !isModelsLoaded || isCapturing) return;
+            if (!videoRef.current || !isModelsLoaded || isCapturing || isVerifying) return;
 
             try {
-                // Lower scoreThreshold to 0.3 to be much more forgiving in poor lighting
                 const detection = await faceapi.detectSingleFace(
                     videoRef.current,
                     new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 })
                 ).withFaceLandmarks().withFaceDescriptor();
 
                 if (detection) {
-                    // Face successfully found!
                     clearInterval(scanInterval);
-                    setIsCapturing(true); // Stop further scans
+                    setIsVerifying(true);
                     const descriptorArray = Array.from(detection.descriptor);
                     
-                    // Add a small delay for UX so they see it succeeded before it disappears
-                    setTimeout(() => {
-                        setCaptured(true);
-                        stopStream();
-                        onCapture(descriptorArray);
-                        setIsCapturing(false);
-                    }, 100);
+                    try {
+                        const res = await fetch('/api/student/face/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ descriptor: descriptorArray })
+                        });
+
+                        const data = await res.json();
+
+                        if (res.ok && data.isMatch) {
+                            setCaptured(true);
+                            stopStream();
+                            onCapture(descriptorArray);
+                        } else {
+                            setError(data.error || "Identity mismatch. Please ensure you are the registered student.");
+                            // Restart scanning after a delay
+                            setTimeout(() => {
+                                setIsVerifying(false);
+                                if (isStreaming) {
+                                    scanInterval = setInterval(scanFace, 500);
+                                }
+                            }, 3000);
+                        }
+                    } catch (err) {
+                        setError("Verification connection failed.");
+                        setIsVerifying(false);
+                    }
                 }
             } catch (err) {
                 console.error("Scanning error:", err);
             }
         };
 
-        if (isStreaming) {
-            // Scan every 500ms
+        if (isStreaming && !isVerifying) {
             scanInterval = setInterval(scanFace, 500);
         }
 
         return () => {
             if (scanInterval) clearInterval(scanInterval);
         };
-    }, [isStreaming, isModelsLoaded, isCapturing, onCapture]);
+    }, [isStreaming, isModelsLoaded, isCapturing, onCapture, isVerifying]);
+
 
     if (captured) {
         return (
@@ -168,10 +190,21 @@ export function FaceCapture({ onCapture, buttonText = "Capture Face" }: FaceCapt
                     {/* Visual Scanning Overlay */}
                     <div className="absolute inset-0 pointer-events-none">
                         <div className="w-full h-full border-4 border-primary/50 relative">
-                            {isCapturing ? (
-                                <div className="absolute inset-0 bg-green-500/30 flex items-center justify-center">
-                                    <span className="text-white font-black tracking-widest uppercase bg-green-600/80 px-4 py-2 rounded-xl backdrop-blur-sm">
-                                        Success!
+                            {isCapturing || isVerifying ? (
+                                <div className={cn(
+                                    "absolute inset-0 flex items-center justify-center transition-colors duration-500",
+                                    isVerifying ? "bg-primary/30" : "bg-green-500/30"
+                                )}>
+                                    <span className={cn(
+                                        "text-white font-black tracking-widest uppercase px-6 py-3 rounded-2xl backdrop-blur-md shadow-2xl flex items-center gap-3",
+                                        isVerifying ? "bg-primary/80" : "bg-green-600/80"
+                                    )}>
+                                        {isVerifying ? (
+                                            <>
+                                                <RefreshCw size={20} className="animate-spin" />
+                                                Verifying...
+                                            </>
+                                        ) : "Success!"}
                                     </span>
                                 </div>
                             ) : (
@@ -180,13 +213,14 @@ export function FaceCapture({ onCapture, buttonText = "Capture Face" }: FaceCapt
                         </div>
                     </div>
                     
-                    {!isCapturing && (
+                    {!isCapturing && !isVerifying && (
                         <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                             <span className="bg-black/60 backdrop-blur-md text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg animate-pulse">
                                 Scanning your face...
                             </span>
                         </div>
                     )}
+
                 </div>
             )}
 

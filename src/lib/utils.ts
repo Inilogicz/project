@@ -52,3 +52,12 @@ export function verifyToken(payload: string, signature: string, secret: string):
 export function generateNonce(): string {
     return crypto.randomBytes(16).toString('hex');
 }
+
+/**
+ * Calculates Euclidean distance between two vectors.
+ */
+export function euclideanDistance(a: number[], b: number[]): number {
+    if (!a || !b || a.length !== b.length) return Infinity;
+    return Math.sqrt(a.reduce((sum, val, i) => sum + Math.pow(val - b[i], 2), 0));
+}
+

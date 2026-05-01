@@ -25,7 +25,7 @@ export async function GET() {
             select: {
                 id: true,
                 fullName: true,
-                email: true,
+                institutionalEmail: true,
                 role: true,
                 department: true,
                 matricNumber: true,
@@ -40,7 +40,7 @@ export async function GET() {
         return NextResponse.json({
             user: {
                 ...user,
-                institutionalEmail: user.email, // alias expected by profile page
+                email: user.institutionalEmail, // maintain standard mapping
             }
         });
     } catch (error) {

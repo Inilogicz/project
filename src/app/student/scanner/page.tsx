@@ -11,7 +11,8 @@ import {
     Camera,
     Activity,
     ScanLine,
-    XCircle
+    XCircle,
+    UserPlus
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/ui-utils';
@@ -22,6 +23,8 @@ export default function QRScanner() {
     const [status, setStatus] = useState<ScanStatus>('IDLE');
     const [errorMessage, setErrorMessage] = useState<string>('');
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
+
 
     // Stable refs — survive re-renders
     const qrRef = useRef<Html5Qrcode | null>(null);
@@ -114,8 +117,22 @@ export default function QRScanner() {
                 throw new Error('Oops! This QR code does not look right. Please re-scan or ask your lecturer.');
             }
 
-            if (!clsId) {
-                throw new Error('Could not identify the class from this QR code. Please re-scan.');
+            // Perform real-time enrollment check
+            setStatus('VALIDATING');
+            
+            const enrollRes = await fetch(`/api/student/check-enrollment/${clsId}`);
+            if (!enrollRes.ok) {
+                const errData = await enrollRes.json();
+                throw new Error(errData.error || 'Failed to verify enrollment');
+            }
+
+            const enrollData = await enrollRes.json();
+
+            if (!enrollData.isEnrolled) {
+                setStatus('ERROR');
+                setErrorMessage(`Oops! You are not registered for ${enrollData.courseCode}. You need to join the course first.`);
+                setPendingJoinCode(enrollData.joinCode);
+                return;
             }
 
             // Brief success state so the user sees the checkmark, then redirect
@@ -221,13 +238,25 @@ export default function QRScanner() {
                                 </p>
 
                                 {status === 'ERROR' && (
-                                    <button
-                                        onClick={handleRescan}
-                                        className="mt-2 px-5 py-2 bg-primary text-white rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 transition-all flex items-center gap-2"
-                                    >
-                                        <ScanLine size={14} /> Re-scan
-                                    </button>
+                                    <div className="flex flex-col gap-3 w-full">
+                                        {pendingJoinCode ? (
+                                            <Link
+                                                href={`/student/join?joinCode=${pendingJoinCode}`}
+                                                className="px-5 py-3 bg-green-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-green-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
+                                            >
+
+                                                <UserPlus size={14} /> Join this Course
+                                            </Link>
+                                        ) : null}
+                                        <button
+                                            onClick={handleRescan}
+                                            className="px-5 py-2 bg-primary/20 text-primary border border-primary/30 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-primary/30 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <ScanLine size={14} /> Re-scan
+                                        </button>
+                                    </div>
                                 )}
+
                             </div>
                         )}
                     </div>

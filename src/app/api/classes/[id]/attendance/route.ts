@@ -2,15 +2,11 @@ import { NextResponse, NextRequest } from 'next/server';
 import prisma from '@/lib/prisma';
 import { verifyJWT } from '@/lib/auth';
 import { Role, ValidationStatus } from '@/types/enums';
-import { calculateDistance, verifyToken } from '@/lib/utils';
+import { calculateDistance, verifyToken, euclideanDistance } from '@/lib/utils';
 import { isAfter } from 'date-fns';
 
-function euclideanDistance(a: number[], b: number[]): number {
-    if (!a || !b || a.length !== b.length) return Infinity;
-    return Math.sqrt(a.reduce((sum, val, i) => sum + Math.pow(val - b[i], 2), 0));
-}
-
 const HMAC_SECRET = process.env.HMAC_SECRET || 'qr-secret-key-change-this';
+
 
 export async function POST(
     request: NextRequest,

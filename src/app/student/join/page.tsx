@@ -1,15 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, BookPlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, Suspense } from 'react';
 
-export default function JoinCoursePage() {
-    const [joinCode, setJoinCode] = useState('');
+function JoinCourseContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [joinCode, setJoinCode] = useState(searchParams.get('joinCode') || '');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const router = useRouter();
+
+    useEffect(() => {
+        const code = searchParams.get('joinCode');
+        if (code) setJoinCode(code);
+    }, [searchParams]);
+
 
     async function handleJoin(e: React.FormEvent) {
         e.preventDefault();
@@ -84,3 +92,16 @@ export default function JoinCoursePage() {
         </div>
     );
 }
+
+export default function JoinCoursePage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-bg-gray flex items-center justify-center">
+                <Loader2 className="animate-spin text-primary" size={48} />
+            </div>
+        }>
+            <JoinCourseContent />
+        </Suspense>
+    );
+}
+
