@@ -22,38 +22,60 @@ export default function LecturerDashboard() {
     const [courses, setCourses] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [startingClassId, setStartingClassId] = useState<string | null>(null);
     const router = useRouter();
 
     async function handleStartClass(courseId: string) {
         if (!navigator.geolocation) {
-            alert('Geolocation is required to start a cls.');
+            alert('Geolocation is required to start a class.');
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-            try {
-                const response = await fetch('/api/classes/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        courseId,
-                        latitude: pos.coords.latitude,
-                        longitude: pos.coords.longitude
-                    })
-                });
+        setStartingClassId(courseId);
 
-                if (response.ok) {
-                    const data = await response.json();
-                    router.push(`/lecturer/classes/${data.clsId}`);
-                } else {
-                    const err = await response.json();
-                    alert(err.error || 'Failed to start class');
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        };
+
+        navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+                try {
+                    const response = await fetch('/api/classes/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            courseId,
+                            latitude: pos.coords.latitude,
+                            longitude: pos.coords.longitude
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        router.push(`/lecturer/classes/${data.clsId}`);
+                    } else {
+                        const err = await response.json();
+                        alert(err.error || 'Failed to start class');
+                        setStartingClassId(null);
+                    }
+                } catch (err) {
+                    alert('An error occurred while connecting to the server.');
+                    setStartingClassId(null);
                 }
-            } catch (err) {
-                alert('An error occurred');
-            }
-        });
+            },
+            (err) => {
+                let msg = 'Failed to get your location.';
+                if (err.code === 1) msg = 'Location access denied. Please enable location permissions.';
+                if (err.code === 3) msg = 'Location request timed out. Please try again.';
+                alert(msg);
+                setStartingClassId(null);
+            },
+            options
+        );
     }
+
 
     async function handleEndClass(clsId: string) {
         if (!confirm('Are you sure you want to end this class?')) return;
@@ -216,7 +238,9 @@ export default function LecturerDashboard() {
                                         code={course.code}
                                         studentCount={course.studentCount}
                                         onStartClass={() => handleStartClass(course.id)}
+                                        isLoading={startingClassId === course.id}
                                     />
+
                                 ))
                             )}
                         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, MoreVertical, Users } from 'lucide-react';
+import { Play, MoreVertical, Users, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface CourseCardProps {
@@ -9,9 +9,11 @@ interface CourseCardProps {
     code: string;
     studentCount: number;
     onStartClass?: () => void;
+    isLoading?: boolean;
 }
 
-export function CourseCard({ id, title, code, studentCount, onStartClass }: CourseCardProps) {
+export function CourseCard({ id, title, code, studentCount, onStartClass, isLoading }: CourseCardProps) {
+
     return (
         <div className="card group hover:shadow-md transition-all hover:border-primary/20">
             <div className="flex items-start justify-between mb-6">
@@ -37,11 +39,22 @@ export function CourseCard({ id, title, code, studentCount, onStartClass }: Cour
             <div className="flex gap-3">
                 <button
                     onClick={onStartClass}
-                    className="flex-1 btn-primary py-2.5 text-sm"
+                    disabled={isLoading}
+                    className="flex-1 btn-primary py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <Play size={16} fill="currentColor" />
-                    Start Class
+                    {isLoading ? (
+                        <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Starting...
+                        </>
+                    ) : (
+                        <>
+                            <Play size={16} fill="currentColor" />
+                            Start Class
+                        </>
+                    )}
                 </button>
+
                 <Link
                     href={`/lecturer/courses/${id}`}
                     className="flex-1 border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-dark rounded-xl flex items-center justify-center font-medium text-sm transition-all"
